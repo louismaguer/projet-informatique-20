@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidential Voting with FHEVM</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; min-height: 100vh; padding: 2rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #8b5cf6; margin-bottom: 2rem; font-size: 1.5rem; }
+        h2 { color: #a78bfa; margin: 1.5rem 0 1rem; font-size: 1.2rem; }
+        .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #a0a0a0; font-size: 0.875rem; }
+        input, select { width: 100%; padding: 0.75rem; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; color: #fff; font-size: 1rem; }
+        button { background: #7c3aed; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-weight: 500; margin-right: 0.5rem; margin-top: 0.5rem; }
+        button:hover { background: #6d28d9; }
+        button:disabled { background: #4a4a4a; cursor: not-allowed; }
+        .election { border-left: 3px solid #7c3aed; padding-left: 1rem; margin-bottom: 1rem; }
+        .election h3 { color: #fff; margin-bottom: 0.5rem; }
+        .election p { color: #888; font-size: 0.875rem; }
+        .result { background: #0f172a; border: 1px solid #3b82f6; border-radius: 4px; padding: 1rem; margin-top: 1rem; }
+        .result-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #1e3a5f; }
+        .result-row:last-child { border-bottom: none; }
+        .status { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .status.active { background: #166534; color: #4ade80; }
+        .status.closed { background: #991b1b; color: #fca5a5; }
+        .error { background: #7f1d1d; color: #fca5a5; padding: 1rem; border-radius: 4px; margin-top: 1rem; }
+        .success { background: #14532d; color: #86efac; padding: 1rem; border-radius: 4px; margin-top: 1rem; }
+        .privacy-note { background: #1e1e1e; border: 1px dashed #444; padding: 1rem; border-radius: 8px; margin-top: 2rem; font-size: 0.875rem; line-height: 1.6; }
+        .privacy-note h3 { color: #a78bfa; margin-bottom: 0.5rem; }
+        .privacy-note .private { color: #4ade80; }
+        .privacy-note .public { color: #fca5a5; }
+        #logs { background: #0a0a0a; border: 1px solid #333; border-radius: 4px; padding: 1rem; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-top: 1rem; }
+        #logs div { margin-bottom: 0.25rem; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Confidential Voting with FHEVM</h1>
+
+        <div class="card">
+            <h2>Create Election</h2>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="electionTitle" placeholder="e.g., Board Election 2026">
+            </div>
+            <div class="form-group">
+                <label>Options (comma-separated)</label>
+                <input type="text" id="electionOptions" placeholder="e.g., Alice, Bob, Charlie">
+            </div>
+            <button onclick="createElection()">Create Election</button>
+        </div>
+
+        <div class="card">
+            <h2>Active Elections</h2>
+            <div id="electionsList">No elections yet</div>
+        </div>
+
+        <div class="card">
+            <h2>Cast Vote</h2>
+            <div class="form-group">
+                <label>Select Election</label>
+                <select id="voteElectionId" onchange="updateVoteOptions()"></select>
+            </div>
+            <div class="form-group">
+                <label>Select Option</label>
+                <select id="voteOption"></select>
+            </div>
+            <button onclick="castVote()">Encrypt & Vote</button>
+        </div>
+
+        <div class="card">
+            <h2>Results</h2>
+            <div class="form-group">
+                <label>Election ID</label>
+                <input type="number" id="resultElectionId" placeholder="1">
+            </div>
+            <button onclick="closeAndReveal()">Close Election & Reveal Results</button>
+            <div id="resultsArea"></div>
+        </div>
+
+        <div id="logs"></div>
+
+        <div class="privacy-note">
+            <h3>🔒 Privacy Explanation</h3>
+            <p><span class="private">✓ PRIVATE (encrypted on-chain):</span></p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                <li>Individual vote choice of each voter</li>
+                <li>Voter-to-vote association (no link between address and vote on-chain)</li>
+                <li>Intermediate tallies during voting</li>
+            </ul>
+            <p style="margin-top: 1rem;"><span class="public">✗ PUBLIC (visible on-chain):</span></p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                <li>Election existence and title</li>
+                <li>Candidates/options list</li>
+                <li>Final aggregated results (after decryption)</li>
+                <li>Number of voters who participated</li>
+                <li>Timing of election close</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { Fhevm, createInstance } from 'https://unpkg.com/@fhevm/sdk@0.2.0/dist/sdk.js';
+
+        let instance;
+        let contract;
+        const CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+
+        const ABI = [
+            'function createElection(string title, string[] options) returns (uint256)',
+            'function castVote(uint256 electionId, bytes encryptedOption) external',
+            'function closeElection(uint256 electionId) external',
+            'function getElection(uint256 electionId) view returns (string title, string[] options, bool isActive, uint256 voterCount)',
+            'function getEncryptedTally(uint256 electionId, uint256 optionIndex) view returns (bytes)',
+            'function electionCounter() view returns (uint256)'
+        ];
+
+        async function init() {
+            if (typeof window.ethereum !== 'undefined') {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+
+                instance = await createInstance({ network: 31337 });
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+                window.createElection = createElection;
+                window.castVote = castVote;
+                window.closeAndReveal = closeAndReveal;
+                window.updateVoteOptions = updateVoteOptions;
+
+                await refreshElections();
+                log('FHEVM initialized. Connecté au contrat.');
+            } else {
+                log('⚠️ Veuillez installer MetaMask pour utiliser cette dApp');
+            }
+        }
+
+        async function createElection() {
+            try {
+                const title = document.getElementById('electionTitle').value;
+                const optionsStr = document.getElementById('electionOptions').value;
+                const options = optionsStr.split(',').map(o => o.trim()).filter(o => o);
+
+                if (!title || options.length < 2) {
+                    alert('Titre requis et au moins 2 options');
+                    return;
+                }
+
+                log(`Création de l'élection: ${title}`);
+                const tx = await contract.createElection(title, options);
+                await tx.wait();
+                log(`Élection créée avec ID: ${await contract.electionCounter()}`);
+                await refreshElections();
+                alert('Élection créée avec succès!');
+            } catch (e) {
+                log(`Erreur: ${e.message}`);
+                alert('Erreur: ' + e.message);
+            }
+        }
+
+        async function castVote() {
+            try {
+                const electionId = parseInt(document.getElementById('voteElectionId').value);
+                const optionIndex = parseInt(document.getElementById('voteOption').value);
+
+                log(`Chiffrement du vote pour l'option ${optionIndex}...`);
+                const encryptedVote = instance.encrypt32(optionIndex);
+
+                log(`Envoi du vote chiffré...`);
+                const tx = await contract.castVote(electionId, encryptedVote);
+                await tx.wait();
+
+                log(`Vote casté avec succès!`);
+                alert('Vote chiffré envoyé avec succès!');
+            } catch (e) {
+                log(`Erreur: ${e.message}`);
+                alert('Erreur: ' + e.message);
+            }
+        }
+
+        async function closeAndReveal() {
+            try {
+                const electionId = parseInt(document.getElementById('resultElectionId').value);
+
+                log(`Clôture de l'élection ${electionId}...`);
+                const closeTx = await contract.closeElection(electionId);
+                await closeTx.wait();
+
+                const [, options, , voterCount] = await contract.getElection(electionId);
+                const resultsDiv = document.getElementById('resultsArea');
+                resultsDiv.innerHTML = `<div class="result"><h3>Résultats (après déchiffrement FHE):</h3>`;
+
+                for (let i = 0; i < options.length; i++) {
+                    const encryptedTally = await contract.getEncryptedTally(electionId, i);
+                    const tally = instance.decrypt(encryptedTally);
+                    resultsDiv.innerHTML += `
+                        <div class="result-row">
+                            <span>${options[i]}</span>
+                            <span><strong>${tally}</strong> votes</span>
+                        </div>`;
+                }
+
+                resultsDiv.innerHTML += `<p style="margin-top:1rem;color:#888;">Total votants: ${voterCount}</p></div>`;
+                log(`Résultats révélés pour l'élection ${electionId}`);
+            } catch (e) {
+                log(`Erreur: ${e.message}`);
+                alert('Erreur: ' + e.message);
+            }
+        }
+
+        async function refreshElections() {
+            try {
+                const count = await contract.electionCounter();
+                const select = document.getElementById('voteElectionId');
+                const list = document.getElementById('electionsList');
+
+                select.innerHTML = '';
+                list.innerHTML = '';
+
+                if (count == 0) {
+                    list.innerHTML = 'No elections yet';
+                    return;
+                }
+
+                for (let i = 1; i <= count; i++) {
+                    const [title, options, isActive, voterCount] = await contract.getElection(i);
+                    const statusClass = isActive ? 'active' : 'closed';
+                    const statusText = isActive ? 'Active' : 'Closed';
+
+                    list.innerHTML += `
+                        <div class="election">
+                            <h3>#${i}: ${title} <span class="status ${statusClass}">${statusText}</span></h3>
+                            <p>Options: ${options.join(', ')} | Votants: ${voterCount}</p>
+                        </div>`;
+
+                    if (isActive) {
+                        select.innerHTML += `<option value="${i}">#${i} - ${title}</option>`;
+                    }
+                }
+
+                if (select.options.length > 0) {
+                    await updateVoteOptions();
+                }
+            } catch (e) {
+                log(`Erreur refresh: ${e.message}`);
+            }
+        }
+
+        async function updateVoteOptions() {
+            try {
+                const electionId = parseInt(document.getElementById('voteElectionId').value);
+                const [, options] = await contract.getElection(electionId);
+                const select = document.getElementById('voteOption');
+                select.innerHTML = '';
+                options.forEach((opt, i) => {
+                    select.innerHTML += `<option value="${i}">${opt}</option>`;
+                });
+            } catch (e) {
+                log(`Erreur update options: ${e.message}`);
+            }
+        }
+
+        function log(msg) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML = `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>` + logs.innerHTML;
+        }
+
+        init();
+    </script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+</body>
+</html>
