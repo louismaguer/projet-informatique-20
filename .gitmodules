@@ -1,6 +1,1 @@
-[submodule "V0/lib/fhevm-solidity"]
-	path = V0/lib/fhevm-solidity
-	url = https://github.com/zama-ai/fhevm-solidity
-[submodule "V0/lib/forge-std"]
-	path = V0/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
+

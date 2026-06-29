@@ -15,9 +15,9 @@
 # Hardhat-deploy
 **/deployments/
 
-# Foundry (V0)
-V0/cache/
-V0/out/
+# Foundry (V0 removed, but patterns kept generic for future use)
+# V0/cache/
+# V0/out/
 
 # Logs
 *.log
