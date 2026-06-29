@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ConfidentialVoting} from "../contracts/ConfidentialVoting.sol";
+import "@fhevm/lib/TFHE.sol";
 
 contract ConfidentialVotingE2ETest is Test {
     ConfidentialVoting public voting;
@@ -34,7 +35,7 @@ contract ConfidentialVotingE2ETest is Test {
         for (uint256 i = 0; i < voters.length; i++) {
             uint8 voteOption = uint8(i % 3);
             vm.prank(voters[i]);
-            voting.castVote(electionId, abi.encode(voteOption));
+            voting.castVote(electionId, bytes32(voteOption), "");
         }
 
         (, , , uint256 voterCount) = voting.getElection(electionId);
@@ -56,10 +57,10 @@ contract ConfidentialVotingE2ETest is Test {
         uint256 electionId = voting.createElection("Secret Vote", options);
 
         vm.prank(voters[0]);
-        voting.castVote(electionId, abi.encode(0));
+        voting.castVote(electionId, bytes32(0), "");
 
         vm.prank(voters[1]);
-        voting.castVote(electionId, abi.encode(1));
+        voting.castVote(electionId, bytes32(1), "");
 
         euint32 encryptedTally0 = voting.getEncryptedTally(electionId, 0);
         euint32 encryptedTally1 = voting.getEncryptedTally(electionId, 1);
@@ -89,10 +90,10 @@ contract ConfidentialVotingE2ETest is Test {
         assertEq(voting.electionCounter(), 2);
 
         vm.prank(voters[0]);
-        voting.castVote(election1, abi.encode(0));
+        voting.castVote(election1, bytes32(0), "");
 
         vm.prank(voters[1]);
-        voting.castVote(election2, abi.encode(2));
+        voting.castVote(election2, bytes32(2), "");
 
         (, , , uint256 count1) = voting.getElection(election1);
         (, , , uint256 count2) = voting.getElection(election2);
@@ -111,7 +112,7 @@ contract ConfidentialVotingE2ETest is Test {
         for (uint256 i = 0; i < 50; i++) {
             uint8 vote = uint8(i % 2);
             vm.prank(voters[i % voters.length]);
-            voting.castVote(electionId, abi.encode(vote));
+            voting.castVote(electionId, bytes32(vote), "");
         }
 
         (, , , uint256 totalVoters) = voting.getElection(electionId);

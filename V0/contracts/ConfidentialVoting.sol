@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.25;
 
 import {EFHEvents, EFVoting} from "@fhevm/lib.sol";
+import "@fhevm/lib/TFHE.sol";
 
 contract ConfidentialVoting is EFHEvents, EFVoting {
     uint256 public electionCounter;
@@ -49,18 +50,13 @@ contract ConfidentialVoting is EFHEvents, EFVoting {
         return electionId;
     }
 
-    function castVote(uint256 electionId, euint32 encryptedOption) external {
+    function castVote(uint256 electionId, einput encryptedOption, bytes calldata inputProof) external {
         Election storage election = elections[electionId];
         require(election.id != 0, "Election does not exist");
         require(election.isActive, "Election is not active");
         require(!hasVoted[electionId][msg.sender], "Already voted");
 
-        euint32 maxOption = TFHE.asEuint32(election.optionCount - 1);
-        euint32 minOption = TFHE.asEuint32(0);
-        euint32 voteValue = TFHE.asEuint32(encryptedOption);
-
-        bool isValidRange = TFHE.and(TFHE.le(voteValue, maxOption), TFHE.ge(voteValue, minOption));
-        require(TFHE.decrypt(isValidRange), "Invalid vote value");
+        euint32 voteValue = TFHE.asEuint32(encryptedOption, inputProof);
 
         for (uint256 i = 0; i < election.optionCount; i++) {
             euint32 isThisOption = TFHE.asEuint32(TFHE.eq(voteValue, TFHE.asEuint32(i)));

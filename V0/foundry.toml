@@ -2,8 +2,11 @@
 src = "contracts"
 out = "out"
 libs = ["lib"]
-solc = "0.8.24"
-fhevm = { version = "0.2.0" }
+solc = "0.8.25"
+
+remappings = [
+    "@fhevm/=lib/fhevm-solidity/"
+]
 
 [rpc_endpoints]
 anvil = "http://127.0.0.1:8545"

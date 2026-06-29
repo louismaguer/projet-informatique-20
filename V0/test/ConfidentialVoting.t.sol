@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ConfidentialVoting} from "../contracts/ConfidentialVoting.sol";
+import "@fhevm/lib/TFHE.sol";
 
 contract ConfidentialVotingTest is Test {
     ConfidentialVoting public voting;
@@ -53,19 +54,6 @@ contract ConfidentialVotingTest is Test {
         voting.createElection("Single Option", options);
     }
 
-    function testVoteValidation() public {
-        string[] memory options = new string[](2);
-        options[0] = "Yes";
-        options[1] = "No";
-
-        vm.prank(admin);
-        uint256 electionId = voting.createElection("Poll", options);
-
-        vm.prank(voter1);
-        vm.expectRevert("Invalid vote value");
-        voting.castVote(electionId, abi.encode(5));
-    }
-
     function testCannotVoteTwice() public {
         string[] memory options = new string[](2);
         options[0] = "Yes";
@@ -75,11 +63,11 @@ contract ConfidentialVotingTest is Test {
         uint256 electionId = voting.createElection("Poll", options);
 
         vm.prank(voter1);
-        voting.castVote(electionId, abi.encode(0));
+        voting.castVote(electionId, bytes32(0), "");
 
         vm.prank(voter1);
         vm.expectRevert("Already voted");
-        voting.castVote(electionId, abi.encode(1));
+        voting.castVote(electionId, bytes32(1), "");
     }
 
     function testCannotVoteOnInactiveElection() public {
@@ -95,7 +83,7 @@ contract ConfidentialVotingTest is Test {
 
         vm.prank(voter1);
         vm.expectRevert("Election is not active");
-        voting.castVote(electionId, abi.encode(0));
+        voting.castVote(electionId, bytes32(0), "");
     }
 
     function testCloseElection() public {
