@@ -1,0 +1,48 @@
+1. Un "Frontend minimal" : L'interface utilisateur de base
+En informatique, on sépare souvent une application en deux parties :
+
+Le Backend : C'est ce qui se passe "derrière le rideau" (les serveurs, la blockchain, les contrats Solidity).
+
+Le Frontend : C'est ce que l'utilisateur voit à l'écran et avec quoi il interagit (les boutons, les textes, les formulaires).
+
+Un "frontend minimal", c'est une page web ou une application extrêmement simple, sans design complexe ni fioritures visuelles. Elle va droit au but.
+
+Dans notre cas, ce serait juste une page web épurée avec :
+
+Une question : "Êtes-vous pour ou contre cette motion ?"
+
+Deux boutons : [ OUI ] et [ NON ].
+
+Un bouton [ Voter ].
+
+2. Le "SDK" : La boîte à outils du développeur
+SDK signifie Software Development Kit (Kit de Développement Logiciel).
+
+Pour faire une analogie, imagine que tu achètes un meuble en kit. Le SDK, c'est la boîte qui contient la clé Allen, les vis et la notice. C'est un ensemble d'outils et de lignes de code pré-écrites fournis par les créateurs de la technologie (ici, les créateurs de la FHEVM) pour aider le développeur à connecter son site web à la blockchain sans devoir réinventer la roue.
+
+Le SDK fournit notamment les fonctions mathématiques ultra-complexes nécessaires pour crypter les données directement dans le navigateur de l'utilisateur.
+
+3. "... qui chiffre le vote avec le SDK" : La sécurité à la source
+C'est l'étape cruciale pour la confidentialité. Le chiffrement doit impérativement avoir lieu sur l'appareil de l'utilisateur (son téléphone ou son ordinateur), avant que le vote ne voyage sur Internet.
+
+Voici le scénario précis de ce qui se passe sur ce frontend :
+
+Le clic : Tu cliques sur le bouton [ OUI ].
+
+L'action du SDK : Le frontend utilise la "boîte à outils" (le SDK) en arrière-plan. Ce SDK prend ton choix ("OUI", qui correspond mathématiquement à un chiffre, par exemple 1).
+
+Le chiffrement local : Le SDK transforme ce 1 en un bloc de texte crypté totalement incompréhensible (le fameux euint dont on parlait juste avant).
+
+L'envoi : C'est ce bloc crypté (et uniquement lui) qui est envoyé à la blockchain à travers Internet.
+
+Pourquoi c'est vital ?
+Même si un pirate informatique interceptait ta connexion internet à ce moment-là, ou si le réseau était corrompu, personne ne pourrait savoir ce que tu as voté. Le "secret" n'a jamais quitté ton ordinateur.
+
+En résumé
+Dire qu'on fait un "frontend minimal qui chiffre le vote avec le SDK", cela signifie :
+
+"On crée une page web toute simple (le frontend) qui utilise la boîte à outils officielle de la FHEVM (le SDK) pour transformer le choix de l'électeur en un code secret indéchiffrable directement sur son ordinateur, avant de l'envoyer au contrat intelligent."
+
+On a maintenant toute la chaîne : l'interface qui chiffre (le Frontend + SDK), le tunnel sécurisé, et l'urne magique qui calcule sans voir (le contrat Solidity + euint).
+
+As-tu des questions sur cette dernière brique, ou souhaites-tu qu'on résume tout le processus du début à la fin ?

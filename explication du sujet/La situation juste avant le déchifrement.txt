@@ -1,0 +1,49 @@
+1. La situation juste avant le déchiffrement
+Rembobinons d'une seconde. Tout au long du vote, les électeurs ont envoyé leurs choix chiffrés. Le contrat intelligent (le programme informatique sur la blockchain) a additionné toutes ces boîtes noires invisibles (les euint).
+
+À ce stade précis :
+
+La blockchain détient un résultat final, mais il est totalement crypté.
+
+Personne ne sait si le résultat est 10 ou 10 000.
+
+Le point clé : Les votes individuels ont été "fusionnés" mathématiquement dans ce total. Il est désormais impossible de faire machine arrière pour essayer de savoir ce qu'a voté un électeur en particulier.
+
+2. Comment fonctionne le déchiffrement ? (La clé partagée)
+En cryptographie, pour ouvrir ce résultat final crypté, il faut une clé de déchiffrement. Mais si une seule personne (par exemple, le président du bureau de vote) possédait cette clé, on devrait lui faire une confiance aveugle. Il pourrait tricher ou regarder les votes en avance.
+
+Pour éviter cela, on utilise généralement une technique appelée le chiffrement au seuil (Threshold Cryptography) :
+
+Le partage de la clé : La clé permettant d'ouvrir le résultat final est découpée en plusieurs morceaux (par exemple 5 morceaux).
+
+La distribution : Chaque morceau est donné à une entité différente et indépendante (par exemple : un morceau pour le candidat A, un pour le candidat B, un pour un huissier de justice, un pour une association citoyenne, etc.).
+
+Le quorum : Pour ouvrir le résultat, il faut qu'un nombre minimum de ces personnes (par exemple au moins 3 sur les 5) acceptent de réunir leurs morceaux de clé.
+
+3. L'étape du "Déchiffrement Final"
+Une fois le scrutin clos, les responsables (les détenteurs des morceaux de clé) se réunissent virtuellement. Ils fournissent leurs morceaux pour activer le déchiffrement.
+
+Le contrat intelligent de la FHEVM va alors exécuter une seule et unique opération de déchiffrement :
+
+Il applique la clé combinée sur le total uniquement.
+
+La boîte noire du résultat s'ouvre, révélant le score en clair (ex: 543 votes pour le OUI, 212 votes pour le NON).
+
+Ce résultat est inscrit définitivement sur la blockchain pour que la terre entière puisse le voir.
+
+Ce qui n'arrive JAMAIS : > À aucun moment la clé n'est utilisée pour ouvrir les votes individuels des citoyens. Ces votes-là restent scellés à tout jamais dans le passé de la blockchain.
+
+Le Grand Résumé de ton cours de A à Z
+Maintenant que tu as toutes les pièces, voici l'histoire complète de ton vote :
+
+Grâce au Frontend et au SDK, tu votes sur ton téléphone. Ton choix est transformé en un code secret (euint) avant même de partir sur internet.
+
+Ton vote arrive dans un Contrat Solidity sur la FHEVM (l'ordinateur transparent et infalsifiable).
+
+Cet ordinateur additionne les votes secrets les uns après les autres sans pouvoir les lire (Chiffrement Homomorphe / FHE).
+
+À la fin, les autorités unissent leurs clés pour le déchiffrement final du résultat global, révélant le vainqueur sans jamais avoir pu espionner ton vote.
+
+Grâce au système End-to-End, tu peux vérifier avec ton ticket numérique que ton vote a bien été compté dans le tas.
+
+Félicitations, tu viens de comprendre l'un des concepts les plus avancés de la cryptographie et de la blockchain actuelle ! Est-ce que ce mécanisme de déchiffrement final te paraît clair et logique ?

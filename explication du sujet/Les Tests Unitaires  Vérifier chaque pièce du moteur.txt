@@ -1,0 +1,48 @@
+1. Les Tests Unitaires : Vérifier chaque pièce du moteur, une par une
+Un test unitaire est un petit script informatique automatisé dont le seul but est de vérifier qu'une seule fonction précise du code fait exactement ce qu'on lui demande, de manière isolée.
+
+Imagine que tu construis une voiture : avant de la tester sur la route, tu vas tester la batterie sur un banc d'essai, puis tester le démarreur, puis tester chaque ampoule des phares. C'est ça, un test unitaire.
+
+Dans notre contrat de vote en Solidity, le développeur va écrire des tests unitaires pour répondre à des questions très précises :
+
+Est-ce que la fonction pour s'enregistrer comme électeur refuse bien une personne qui n'a pas l'âge légal ?
+
+Est-ce que si j'envoie un vote vide, le système renvoie bien une erreur ?
+
+Est-ce que l'addition magique (FHE.add) de deux euint cryptés donne bien le bon résultat une fois déchiffrée ?
+
+Le gros avantage : Si on modifie le code plus tard pour ajouter une option, on relance tous les tests unitaires en un clic. Si l'un d'eux passe au "rouge", on sait exactement quelle ligne de code a été cassée.
+
+2. Le Scénario E2E (End-to-End) : Le crash-test en conditions réelles
+"E2E" signifie ici End-to-End (De bout en bout), mais appliqué à la phase de test. Contrairement aux tests unitaires qui vérifient des petits morceaux isolés, le scénario E2E va tester toute la chaîne cinématique du point de vue d'un utilisateur réel.
+
+On simule un vote complet, de la première à la dernière seconde, pour s'assurer que toutes les briques (le Frontend, le SDK, la FHEVM et le déchiffrement) s'emboîtent parfaitement.
+
+Voici à quoi ressemble un scénario E2E type pour notre application :
+
+[Étape 1 : Simulation des acteurs]
+On crée informatiquement 3 faux électeurs (Alice, Bob, Charlie) et 1 faux administrateur.
+
+[Étape 2 : Le Vote]
+- Alice ouvre le site (Frontend), clique sur "OUI", le SDK chiffre son vote et l'envoie.
+- Bob fait de même et vote "OUI".
+- Charlie fait de même et vote "NON".
+
+[Étape 3 : Le Calcul]
+Le contrat Solidity reçoit les 3 votes cryptés et les accumule dans la FHEVM.
+
+[Étape 4 : La Clôture et le Déchiffrement]
+L'administrateur s'identifie, ferme le scrutin et déclenche le déchiffrement final.
+
+[Étape 5 : La Vérification (Le Test)]
+Le script E2E vérifie automatiquement :
+- Est-ce que le résultat affiché est bien "2 OUI et 1 NON" ?
+- Est-ce qu'on a bien été incapable de voir le vote d'Alice pendant l'étape 3 ?
+Si le résultat est correct et que la confidentialité a été maintenue tout du long, le test E2E est validé ("Vert"). Le système est jugé prêt à être déployé pour de vrais utilisateurs.
+
+En résumé
+Tests unitaires : On vérifie minutieusement chaque rouage et chaque ligne de code de notre urne électronique de manière isolée.
+
+Scénario E2E : On simule une élection complète (fausses identités, votes, calculs, résultats) pour s'assurer que le système global fonctionne parfaitement du début à la fin.
+
+Tu as maintenant une vision globale et complète de l'ingénierie derrière un projet de vote confidentiel sur la blockchain ! Est-ce que la différence entre tester un "morceau" (unitaire) et tester "tout le voyage" (E2E) te paraît claire ?
