@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+artifacts/
+cache/
+fhevmTemp/
+types/
+coverage/
+coverage.json
+dist/
+
+# Hardhat
+out/
+deployments/
+
+# Logs
+*.log
+/tmp/*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Environment
+.env
+.env.local

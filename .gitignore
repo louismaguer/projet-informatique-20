@@ -1,0 +1,33 @@
+# Dependencies
+**/node_modules/
+**/package-lock.json
+
+# Hardhat build outputs
+**/artifacts/
+**/cache/
+**/fhevmTemp/
+**/types/
+**/coverage/
+**/coverage.json
+**/dist/
+**/out/
+
+# Hardhat-deploy
+**/deployments/
+
+# Foundry (V0)
+V0/cache/
+V0/out/
+
+# Logs
+*.log
+/tmp/*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Environment
+.env
+.env.local
