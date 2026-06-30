@@ -478,6 +478,8 @@
         const titleEl = document.getElementById("modalTitle");
         const bodyEl = document.getElementById("modalBody");
         const closeBtn = document.getElementById("modalCloseBtn");
+        // Toujours restaurer le handler par défaut (écrasé par les modales custom)
+        closeBtn.onclick = () => window.closePopup();
         titleEl.className = type;
         titleEl.innerHTML = type === "pending" ? `<span class="spinner"></span> ${title}` : title;
         if (typeof body === "string") {
