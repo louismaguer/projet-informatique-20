@@ -54,6 +54,16 @@
         button:disabled { background: #4a4a4a; cursor: not-allowed; }
         button.secondary { background: #1f2937; }
         button.secondary:hover { background: #374151; }
+        .election {
+            border-left: 3px solid #7c3aed;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            background: #0f0f0f;
+            border-radius: 4px;
+        }
+        .election h3 { color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .election p { color: #888; font-size: 0.875rem; }
+        .election .options { color: #c4b5fd; margin-top: 0.25rem; }
         .result {
             background: #0f172a;
             border: 1px solid #3b82f6;
@@ -262,6 +272,11 @@
         </div>
 
         <div class="card">
+            <h2>📊 Elections et Résultats</h2>
+            <div id="electionsList">Chargement...</div>
+        </div>
+
+        <div class="card">
             <h2>🔓 Fermer election & révéler</h2>
             <div class="form-group">
                 <label>ID Election</label>
@@ -301,8 +316,8 @@
     </div>
 
     <script type="module">
-        // v=6 : cache-buster pour forcer le navigateur à recharger après modif du mock
-        import { createInstance } from "./mock-fhevm.js?v=6";
+        // v=5 : cache-buster pour forcer le navigateur à recharger après modif du mock
+        import { createInstance } from "./mock-fhevm.js?v=5";
 
         const RPC_URL = "http://localhost:8545";
         const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
@@ -431,17 +446,32 @@
             try {
                 const count = await contract.electionCounter();
                 const select = document.getElementById("voteElectionId");
+                const list = document.getElementById("electionsList");
                 const cache = loadResultsCache();
 
                 select.innerHTML = "";
+                list.innerHTML = "";
 
-                if (Number(count) === 0) return;
+                if (Number(count) === 0) {
+                    list.innerHTML = '<p style="color:#888;">Aucune election. Créez-en une ci-dessus.</p>';
+                    return;
+                }
 
                 for (let i = 1; i <= Number(count); i++) {
                     const [title, options, isActive, voterCount] = await contract.getElection(i);
+                    const badge = isActive
+                        ? '<span class="status active">Active</span>'
+                        : '<span class="status closed">Fermée</span>';
                     const cached = !isActive ? cache[String(i)] : null;
+                    const resultsHtml = cached ? renderResultCard(i, cached) : "";
+                    list.innerHTML += `
+                        <div class="election">
+                            <h3>#${i}: ${escapeHtml(title)} ${badge}</h3>
+                            <p class="options">${options.map(escapeHtml).join(" • ")}</p>
+                            <p class="election-meta">Votants: ${voterCount}${resultsHtml}</p>
+                        </div>`;
                     if (isActive) {
-                        select.innerHTML += `<option value="${i}">#${i} - ${escapeHtml(title)}${cached ? " 🏆" : ""}</option>`;
+                        select.innerHTML += `<option value="${i}">#${i} - ${escapeHtml(title)}</option>`;
                     }
                 }
                 if (select.options.length > 0) updateVoteOptions();
