@@ -34,8 +34,12 @@ contract ConfidentialVoting is ZamaEthereumConfig {
         external
         returns (uint256)
     {
-        require(bytes(title).length > 0, "Title required");
-        require(options.length >= 2, "At least 2 options required");
+        require(bytes(title).length > 0, "CreateElection: title cannot be empty");
+        require(options.length >= 2, "CreateElection: at least 2 options required");
+        require(options.length <= 100, "CreateElection: max 100 options allowed");
+        for (uint256 i = 0; i < options.length; i++) {
+            require(bytes(options[i]).length > 0, "CreateElection: empty option not allowed");
+        }
 
         uint256 electionId = ++electionCounter;
 

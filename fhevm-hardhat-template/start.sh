@@ -48,13 +48,11 @@ if ! lsof -i :8081 > /dev/null 2>&1; then
 fi
 echo "✓ Relayer proxy prêt (port 8081)"
 
-# 4. Frontend server
+# 4. Frontend server (no-cache pour éviter le caching navigateur)
 if ! lsof -i :8080 > /dev/null 2>&1; then
-    echo "🌐 Démarrage frontend server..."
-    cd frontend
-    python3 -m http.server 8080 > /tmp/frontend.log 2>&1 &
+    echo "🌐 Démarrage frontend server (no-cache)..."
+    python3 frontend_server.py > /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
-    cd ..
     sleep 2
 fi
 echo "✓ Frontend prêt (port 8080)"

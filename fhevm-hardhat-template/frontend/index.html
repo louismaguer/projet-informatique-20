@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Vote Confidentiel - FHEVM Local Demo</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -138,6 +141,55 @@
             border-radius: 4px;
         }
         .encryption-info strong { color: #4ade80; }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .modal h3 { margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .modal h3.success { color: #4ade80; }
+        .modal h3.error { color: #fca5a5; }
+        .modal h3.info { color: #a78bfa; }
+        .modal h3.pending { color: #fbbf24; }
+        .modal p { color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.75rem; word-break: break-word; }
+        .modal .modal-body { margin-bottom: 1rem; }
+        .modal .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+        .modal pre {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin: 0.5rem 0;
+        }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #fbbf24;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -202,6 +254,16 @@
 
         <div id="logs"></div>
 
+        <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this)window.closePopup()">
+            <div class="modal">
+                <h3 id="modalTitle"></h3>
+                <div id="modalBody" class="modal-body"></div>
+                <div class="modal-actions">
+                    <button id="modalCloseBtn" onclick="window.closePopup()">Fermer</button>
+                </div>
+            </div>
+        </div>
+
         <div class="privacy-note">
             <h3>🔒 Confidentialité</h3>
             <p><span class="private">✓ PRIVÉ (chiffré on-chain) :</span></p>
@@ -221,7 +283,8 @@
     </div>
 
     <script type="module">
-        import { createInstance } from "./mock-fhevm.js";
+        // v=3 : cache-buster pour forcer le navigateur à recharger après modif du mock
+        import { createInstance } from "./mock-fhevm.js?v=3";
 
         const RPC_URL = "http://localhost:8545";
         const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
@@ -250,6 +313,30 @@
             div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
             logs.prepend(div);
             console.log(msg);
+        }
+
+        function showPopup(title, body, type = "info", opts = {}) {
+            const overlay = document.getElementById("modalOverlay");
+            const titleEl = document.getElementById("modalTitle");
+            const bodyEl = document.getElementById("modalBody");
+            const closeBtn = document.getElementById("modalCloseBtn");
+            titleEl.className = type;
+            titleEl.innerHTML = type === "pending"
+                ? `<span class="spinner"></span> ${title}`
+                : title;
+            if (typeof body === "string") {
+                bodyEl.innerHTML = `<p>${body}</p>`;
+            } else {
+                bodyEl.innerHTML = "";
+                bodyEl.appendChild(body);
+            }
+            closeBtn.textContent = opts.closeLabel || "Fermer";
+            closeBtn.style.display = opts.hideClose ? "none" : "";
+            overlay.classList.add("open");
+        }
+
+        function closePopup() {
+            document.getElementById("modalOverlay").classList.remove("open");
         }
 
         async function init() {
@@ -346,14 +433,27 @@
         }
 
         async function createElection() {
-            if (!signer || !contract) return log("Non connecté", "error");
+            if (!signer || !contract) return showPopup("⚠ Non connecté", "Le wallet/contrat n'est pas initialisé. Vérifie que Hardhat tourne sur :8545.", "error");
             const title = document.getElementById("electionTitle").value.trim();
             const optionsStr = document.getElementById("electionOptions").value.trim();
             const options = optionsStr.split(",").map(s => s.trim()).filter(Boolean);
-            if (!title || options.length < 2) {
-                log("Titre et au moins 2 options requis", "error");
+            if (!title) {
+                showPopup("❌ Titre manquant", "Le titre de l'élection est obligatoire.", "error");
+                return log("❌ Erreur: le titre est vide", "error");
+            }
+            if (options.length < 2) {
+                showPopup("❌ Options insuffisantes", `Il faut au moins 2 options. Tu en as fourni ${options.length}.`, "error");
                 return;
             }
+            if (options.length > 100) {
+                showPopup("❌ Trop d'options", `Maximum 100 options autorisées. Tu en as fourni ${options.length}.`, "error");
+                return;
+            }
+            if (options.some(o => o.length === 0)) {
+                showPopup("❌ Option vide", "Une des options est vide.", "error");
+                return;
+            }
+            showPopup("Création en cours…", `Envoi de la transaction pour "${title}" avec ${options.length} options.`, "pending", { hideClose: true });
             try {
                 log(`Création election "${title}"...`);
                 const tx = await contract.createElection(title, options);
@@ -362,25 +462,37 @@
                 log(`✓ Election #${newId} créée (block ${receipt.blockNumber})`, "success");
                 document.getElementById("electionTitle").value = "";
                 document.getElementById("electionOptions").value = "";
+                const body = document.createElement("div");
+                body.innerHTML = `
+                    <p><strong>${title}</strong> a été créée avec succès.</p>
+                    <pre>ID      : #${newId}
+Block   : ${receipt.blockNumber}
+Options : ${options.join(", ")}
+Gas     : ${receipt.gasUsed.toString()}</pre>`;
+                showPopup("✓ Élection créée", body, "success");
                 await refreshElections();
             } catch (e) {
-                log(`Erreur: ${e.message}`, "error");
+                const reason = e.reason || e.shortMessage || e.message || String(e);
+                log(`❌ Erreur création: ${reason}`, "error");
+                const body = document.createElement("div");
+                body.innerHTML = `<pre>${reason}</pre>`;
+                showPopup("❌ Échec de la création", body, "error");
+                if (e.stack) console.error(e);
             }
         }
 
         async function castVote() {
             if (!signer || !contract || !instance) {
-                log("Non initialisé", "error");
-                return;
+                return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
             }
+            const electionId = document.getElementById("voteElectionId").value;
+            const optionIndex = parseInt(document.getElementById("voteOption").value);
+            const optionLabel = document.getElementById("voteOption").options[document.getElementById("voteOption").selectedIndex]?.text || `option ${optionIndex}`;
+            if (!electionId) {
+                return showPopup("❌ Aucune élection", "Choisis une élection dans la liste.", "error");
+            }
+            showPopup("Chiffrement du vote…", "Génération locale du ciphertext FHE + input proof via le relayer mock.", "pending", { hideClose: true });
             try {
-                const electionId = document.getElementById("voteElectionId").value;
-                const optionIndex = parseInt(document.getElementById("voteOption").value);
-                if (!electionId) {
-                    log("Choisir une election d'abord", "error");
-                    return;
-                }
-
                 log(`Chiffrement local du vote (option ${optionIndex})...`);
 
                 const input = instance.createEncryptedInput(
@@ -398,22 +510,34 @@
                 );
                 const receipt = await tx.wait();
                 log(`✓ Vote chiffré envoyé ! Block ${receipt.blockNumber}`, "success");
+                const body = document.createElement("div");
+                body.innerHTML = `
+                    <p>Vote pour <strong>${optionLabel}</strong> sur l'élection <strong>#${electionId}</strong> envoyé.</p>
+                    <pre>Handle   : ${encrypted.handles[0].substring(0, 42)}…
+Block    : ${receipt.blockNumber}
+Gas      : ${receipt.gasUsed.toString()}
+Status   : confirmé on-chain</pre>
+                    <p style="color:#4ade80;">🔒 Ton vote reste chiffré. Le total sera révélé à la clôture.</p>`;
+                showPopup("✓ Vote enregistré", body, "success");
             } catch (e) {
-                log(`Erreur vote: ${e.message}`, "error");
+                const reason = e.reason || e.shortMessage || e.message || String(e);
+                log(`Erreur vote: ${reason}`, "error");
+                const body = document.createElement("div");
+                body.innerHTML = `<pre>${reason}</pre>`;
+                showPopup("❌ Échec du vote", body, "error");
                 if (e.stack) console.error(e);
             }
         }
 
         async function closeAndReadResults() {
             if (!signer || !contract || !instance) {
-                log("Non initialisé", "error");
-                return;
+                return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
             }
             const electionId = parseInt(document.getElementById("resultElectionId").value);
             if (!electionId) {
-                log("ID election requis", "error");
-                return;
+                return showPopup("❌ ID manquant", "Saisis l'ID de l'élection à fermer.", "error");
             }
+            showPopup("Fermeture en cours…", `Envoi de closeElection(#${electionId}) puis déchiffrement public des totaux.`, "pending", { hideClose: true });
             try {
                 log(`Fermeture election ${electionId}...`);
                 const tx = await contract.closeElection(electionId);
@@ -452,15 +576,42 @@
                 html += `<p style="margin-top:1rem;color:#94a3b8;font-size:0.85rem;">Total: ${voterCount} votants</p></div>`;
                 list.innerHTML = html + list.innerHTML;
 
+                // Popup résultats
+                const body = document.createElement("div");
+                const winner = results.reduce((a, b) => (a.votes >= b.votes ? a : b), results[0]);
+                let rows = "";
+                for (const r of results) {
+                    const pct = ((r.votes / maxVotes) * 100).toFixed(0);
+                    const isWinner = r === winner && r.votes > 0;
+                    rows += `<div class="result-row"><span>${isWinner ? "🏆 " : ""}<strong>${r.option}</strong></span><span class="votes">${r.votes} (${pct}%)</span></div>`;
+                }
+                body.innerHTML = `
+                    <p><strong>Élection #${electionId}</strong> fermée et déchiffrée.</p>
+                    ${rows}
+                    <pre>Total votants : ${voterCount}</pre>`;
+                showPopup("🏆 Résultats", body, "success");
+
                 await refreshElections();
             } catch (e) {
-                log(`Erreur: ${e.message}`, "error");
+                const reason = e.reason || e.shortMessage || e.message || String(e);
+                log(`Erreur: ${reason}`, "error");
+                const body = document.createElement("div");
+                body.innerHTML = `<pre>${reason}</pre>`;
+                showPopup("❌ Échec", body, "error");
                 if (e.stack) console.error(e);
             }
         }
 
         init();
         setInterval(refreshElections, 8000);
+
+        // Expose les handlers onclick (script type=module a une portée isolée)
+        window.createElection = createElection;
+        window.castVote = castVote;
+        window.refreshElections = refreshElections;
+        window.closeAndReadResults = closeAndReadResults;
+        window.updateVoteOptions = updateVoteOptions;
+        window.closePopup = closePopup;
     </script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
 </body>

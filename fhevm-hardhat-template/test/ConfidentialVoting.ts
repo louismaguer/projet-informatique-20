@@ -84,14 +84,74 @@ describe("ConfidentialVoting", function () {
 
   it("devrait refuser une election sans titre", async function () {
     const options = ["Alice", "Bob"];
-    await expect(contract.createElection("", options)).to.be.revertedWith("Title required");
+    await expect(contract.createElection("", options)).to.be.revertedWith(
+      "CreateElection: title cannot be empty",
+    );
   });
 
-  it("devrait refuser une election avec moins de 2 options", async function () {
+  it("devrait refuser une election avec 0 options", async function () {
+    const options: string[] = [];
+    await expect(contract.createElection("NoOptions", options)).to.be.revertedWith(
+      "CreateElection: at least 2 options required",
+    );
+  });
+
+  it("devrait refuser une election avec 1 seule option", async function () {
     const options = ["Alice"];
     await expect(contract.createElection("Single", options)).to.be.revertedWith(
-      "At least 2 options required",
+      "CreateElection: at least 2 options required",
     );
+  });
+
+  it("devrait refuser une election contenant une option vide", async function () {
+    const options = ["Alice", ""];
+    await expect(contract.createElection("EmptyOption", options)).to.be.revertedWith(
+      "CreateElection: empty option not allowed",
+    );
+  });
+
+  it("devrait refuser une election avec plus de 100 options", async function () {
+    const options: string[] = [];
+    for (let i = 0; i < 101; i++) options.push(`Option${i}`);
+    await expect(contract.createElection("TooMany", options)).to.be.revertedWith(
+      "CreateElection: max 100 options allowed",
+    );
+  });
+
+  it("devrait accepter exactement 100 options", async function () {
+    const options: string[] = [];
+    for (let i = 0; i < 100; i++) options.push(`Option${i}`);
+    const tx = await contract.createElection("MaxOptions", options);
+    await tx.wait();
+    const [, returnedOptions] = await contract.getElection(1);
+    expect(returnedOptions.length).to.eq(100);
+  });
+
+  it("devrait incrémenter electionCounter a chaque creation", async function () {
+    await (await contract.createElection("E1", ["A", "B"])).wait();
+    await (await contract.createElection("E2", ["A", "B"])).wait();
+    await (await contract.createElection("E3", ["A", "B"])).wait();
+    const counter = await contract.electionCounter();
+    expect(counter).to.eq(3);
+  });
+
+  it("devrait accepter des titres avec caracteres speciaux", async function () {
+    const title = "Election 2026 — Délégués 🎉";
+    const tx = await contract.createElection(title, ["A", "B"]);
+    await tx.wait();
+    const [storedTitle] = await contract.getElection(1);
+    expect(storedTitle).to.eq(title);
+  });
+
+  it("devrait accepter des options dupliquées sans erreur", async function () {
+    const options = ["Alice", "Alice", "Bob"];
+    const tx = await contract.createElection("Dups", options);
+    await tx.wait();
+    const [, returnedOptions] = await contract.getElection(1);
+    expect(returnedOptions.length).to.eq(3);
+    expect(returnedOptions[0]).to.eq("Alice");
+    expect(returnedOptions[1]).to.eq("Alice");
+    expect(returnedOptions[2]).to.eq("Bob");
   });
 
   it("devrait accepter un vote chiffré", async function () {
