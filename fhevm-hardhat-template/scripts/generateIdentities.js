@@ -217,12 +217,11 @@ async function main() {
   <div class="controls">
     <h1>🖨 ${identities.length} slips d'identités (à imprimer et découper)</h1>
     <button class="print" onclick="window.print()">Imprimer</button>
-    <button class="danger" id="delBtn" data-cmd='rm "${OUT_FILE}"'>📋 Copier la commande de suppression</button>
   </div>
   <div class="meta">
     Généré le <strong>${generatedAt}</strong> — contient <strong>${identities.length} clés privées en clair</strong>.<br>
-    Après impression, exécute cette commande pour supprimer le fichier :
-    <code id="rmCmd">rm "${OUT_FILE}"</code>
+    Après impression, supprime ce fichier avec :
+    <code>rm "${OUT_FILE}"</code>
   </div>
   <div style="background:#7f1d1d;color:#fee2e2;border:2px solid #b91c1c;padding:0.75rem 1rem;border-radius:6px;margin-bottom:1rem;font-size:0.85rem;">
     <strong>⚠️ DANGER — VRAIS WALLETS CRYPTOGRAPHIQUES</strong><br>
@@ -233,27 +232,8 @@ async function main() {
 ${slipsHtml}
   </div>
   <script>
-    // Bouton "Copier la commande" : copie la commande rm dans le presse-papier.
-    // Marche que le fichier soit ouvert via file:// ou via un serveur HTTP
-    // (le précédent fetch('/__del__') ne marchait nulle part).
-    document.getElementById("delBtn").addEventListener("click", async () => {
-      const cmd = document.getElementById("delBtn").dataset.cmd;
-      const btn = document.getElementById("delBtn");
-      const orig = btn.textContent;
-      try {
-        await navigator.clipboard.writeText(cmd);
-        btn.textContent = "✓ Commande copiée — colle-la dans le terminal";
-        btn.disabled = true;
-      } catch (e) {
-        // Fallback : sélection du texte dans la balise <code>
-        const range = document.createRange();
-        range.selectNode(document.getElementById("rmCmd"));
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        btn.textContent = "✓ Commande sélectionnée — Ctrl+C, puis colle dans le terminal";
-      }
-    });
+    // Aucun JS dans cette page : la sécurité repose sur la suppression
+    // manuelle du fichier après impression (cf. commande rm ci-dessus).
   </script>
 </body>
 </html>
