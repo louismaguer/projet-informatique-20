@@ -57,6 +57,16 @@ if ! lsof -i :8080 > /dev/null 2>&1; then
 fi
 echo "✓ Frontend prêt (port 8080)"
 
+# 5. Génération des identités (slips papier pour les votants)
+echo "🎟  Génération des slips d'identité..."
+rm -f scripts/printIdentities.html
+if ! npx hardhat run scripts/generateIdentities.js --network localhost > /tmp/identities.log 2>&1; then
+    echo "❌ Échec de la génération des identités (voir /tmp/identities.log)"
+    exit 1
+fi
+SLIPS_FILE="scripts/printIdentities.html"
+echo "✓ Slips générés: $SLIPS_FILE"
+
 echo ""
 echo "=========================================="
 echo "🎉 Services prêts!"
@@ -65,8 +75,10 @@ echo "📍 Frontend:      http://localhost:8080"
 echo "📍 Hardhat RPC:   http://localhost:8545"
 echo "📍 Relayer mock:  http://localhost:8081"
 echo "📍 Contrat:       $CONTRACT_ADDRESS"
+echo "🎟  Slips:         $SLIPS_FILE (à imprimer)"
 echo ""
 echo "👉 Ouvrez http://localhost:8080 dans votre navigateur"
+echo "👉 Imprimez les slips depuis $SLIPS_FILE puis supprimez le fichier"
 echo "=========================================="
 
 # Open browser (macOS)
