@@ -925,8 +925,7 @@ Status   : confirmé on-chain</pre>
           popupBody.innerHTML = `
                     <p><strong>Élection #${electionId}</strong> fermée et déchiffrée.</p>
                     ${renderResultCard(electionId, { title, options, results, voterCount: Number(voterCount) })}
-                    <pre>Total votants : ${voterCount}</pre>
-                    <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">Le résultat reste visible à côté de la mention de l'élection.</p>`;
+                    <pre>Total votants : ${voterCount}</pre>`;
           showPopup("🏆 Résultats", popupBody, "success");
 
           await refreshElections();
