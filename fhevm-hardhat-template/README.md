@@ -65,6 +65,67 @@ For detailed instructions see:
    npx hardhat test --network sepolia
    ```
 
+## 🗳 Vote multi-appareils (LAN non fiable)
+
+Le frontend n'embarque **aucune clé privée**. Chaque votant utilise sa propre identité, reçue sur un slip papier imprimé
+par l'admin. Convient pour une démo en atelier sur un LAN non chiffré.
+
+> ## ⚠️ AVERTISSEMENT CRITIQUE — wallets de démo
+>
+> Les 20 wallets générés par `generateIdentities.js` sont de **vrais keypairs cryptographiques** (mêmes algo que
+> MetaMask/Ledger). Ils n'ont de la valeur **que** sur le noeud Hardhat local (chainId 31337).
+>
+> **Ne finance JAMAIS ces adresses sur mainnet, Sepolia ou toute autre chaîne publique.** Si quelqu'un (toi, un dev, une
+> erreur de copier-coller) envoie de l'ETH réel à une de ces adresses, la clé privée imprimée sur le slip contrôle ces
+> fonds — et quiconque a vu le slip aussi.
+>
+> Régénérer un nouveau set avant chaque démo pour rendre les anciens inertes.
+
+### Côté admin (1 fois avant la démo)
+
+```bash
+# Génère 20 wallets aléatoires, les crédite de 100 ETH chacun,
+# et produit scripts/printIdentities.html (slips à imprimer)
+npx hardhat run scripts/generateIdentities.js --network localhost
+```
+
+1. Ouvre `scripts/printIdentities.html` dans un navigateur → clique **Imprimer** → coupe les 20 slips.
+2. **Supprime le fichier** après impression (`rm scripts/printIdentities.html`).
+3. Note l'IP LAN de la machine Hardhat (`ifconfig | grep inet`).
+
+### Côté votant (un par appareil)
+
+1. Sur l'appareil (téléphone, laptop, tablette), ouvre `http://<IP-serveur>:8080`.
+2. Une modale demande de coller la clé privée du slip → bouton **Valider**.
+3. La PK reste dans le `localStorage` de l'appareil uniquement (jamais envoyée au serveur).
+4. Vote normalement. Bouton **🧹 Effacer mes données** pour nettoyer à la fin.
+
+### Comportements garantis
+
+| Cas                                                              | Résultat                                                                                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2 votants distincts (PK différentes) votent sur la même élection | `voterCount = 2` ✓                                                                                                       |
+| Même wallet tente un 2ᵉ vote                                     | Rejeté (`Already voted`) ✓                                                                                               |
+| Wallet sans ETH                                                  | Message d'erreur explicite + bouton pour re-demander une PK                                                              |
+| Appareil perdu / volé                                            | Le votant peut cliquer « Effacer mes données » → la PK disparaît du localStorage. L'admin peut créditer un nouveau slip. |
+
+### Tests
+
+```bash
+npx hardhat test test/MultiDevice.ts
+```
+
+Couvre : 2 wallets arbitraires, double-vote, 10 voters en parallèle, sanity check des wallets générés.
+
+### Sécurité — ce qui est et n'est pas protégé
+
+| ✅ Protégé                                                     | ❌ Non protégé (assumé en démo)                                                         |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Choix de chaque votant (chiffrement FHE local avant envoi)     | Authentification du votant (n'importe qui avec un slip peut voter)                      |
+| Vote individuel invisible jusqu'à la clôture                   | Risque de regard par-dessus l'épaule quand la PK est collée                             |
+| Ta clé ne quitte jamais ton appareil                           | `localStorage` non chiffré au repos sur ton appareil                                    |
+| Réseau : transport HTTP en clair, mais ciphertext FHE = opaque | Attaque physique sur l'appareil entre le moment où tu colles la PK et celui où tu votes |
+
 ## 📁 Project Structure
 
 ```

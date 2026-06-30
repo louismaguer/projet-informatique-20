@@ -8,14 +8,28 @@ const FHEVM_HANDLE_VERSION = 0;
 
 // FhevmType enum (doit matcher @fhevm/mock-utils)
 const FhevmType = {
-  ebool: 0, euint4: 1, euint8: 2, euint16: 3, euint32: 4,
-  euint64: 5, euint128: 6, eaddress: 7, euint256: 8,
+  ebool: 0,
+  euint4: 1,
+  euint8: 2,
+  euint16: 3,
+  euint32: 4,
+  euint64: 5,
+  euint128: 6,
+  eaddress: 7,
+  euint256: 8,
 };
 
 // FheType byte size pour le packed ciphertext
 const FheTypeByteSize = {
-  ebool: 1, euint4: 1, euint8: 1, euint16: 2, euint32: 4,
-  euint64: 8, euint128: 16, eaddress: 20, euint256: 32,
+  ebool: 1,
+  euint4: 1,
+  euint8: 1,
+  euint16: 2,
+  euint32: 4,
+  euint64: 8,
+  euint128: 16,
+  eaddress: 20,
+  euint256: 32,
 };
 
 // --- helpers ---
@@ -28,7 +42,12 @@ function hexToBytes(hex) {
 }
 
 function bytesToHex(bytes) {
-  return "0x" + Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  return (
+    "0x" +
+    Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 function concatBytes(...arrays) {
@@ -36,12 +55,17 @@ function concatBytes(...arrays) {
   for (const a of arrays) total += a.length;
   const out = new Uint8Array(total);
   let offset = 0;
-  for (const a of arrays) { out.set(a, offset); offset += a.length; }
+  for (const a of arrays) {
+    out.set(a, offset);
+    offset += a.length;
+  }
   return out;
 }
 
 function uintToBytesBE(value, byteLen) {
-  const hex = BigInt(value).toString(16).padStart(byteLen * 2, "0");
+  const hex = BigInt(value)
+    .toString(16)
+    .padStart(byteLen * 2, "0");
   return hexToBytes(hex);
 }
 
@@ -49,6 +73,18 @@ function randomBytes32() {
   const arr = new Uint8Array(32);
   crypto.getRandomValues(arr);
   return arr;
+}
+
+// URL du noeud Hardhat : déduite de l'origine de la page pour fonctionner
+// depuis n'importe quel appareil du LAN (pas seulement localhost).
+// En développement, on peut forcer via ?rpc=http://X.Y.Z.W:8545 dans l'URL.
+function getRpcUrl() {
+  if (typeof window === "undefined") return "http://localhost:8545";
+  const override = new URL(window.location.href).searchParams.get("rpc");
+  if (override) return override;
+  const host = window.location.hostname || "localhost";
+  const proto = window.location.protocol || "http:";
+  return `${proto}//${host}:8545`;
 }
 
 // --- ciphertext packing : keccak256( concat(fheType || value || rand32) per input ) ---
@@ -75,7 +111,11 @@ function computeHandle(blobHash, aclAddress, chainIdNum, fhevmTypeName, index) {
   const idxByte = new Uint8Array([index]);
   // ethers.isAddress exige une address checksummed. Normalise depuis n'importe quel format.
   let aclNorm = aclAddress;
-  try { aclNorm = ethers.getAddress(aclAddress); } catch { /* garder tel quel */ }
+  try {
+    aclNorm = ethers.getAddress(aclAddress);
+  } catch {
+    /* garder tel quel */
+  }
   const aclHex = aclNorm.toLowerCase().replace(/^0x/, "");
   const aclBytes = hexToBytes("0x" + aclHex.slice(-40));
   const chainIdBytes = uintToBytesBE(chainIdNum, 32);
@@ -141,9 +181,9 @@ class MockFhevmInstance {
   }
 
   async publicDecrypt(handles, options = {}) {
-    const rpcUrl = "http://localhost:8545";
+    const rpcUrl = getRpcUrl();
     const handlesArr = Array.isArray(handles) ? handles : [handles];
-    const handlesHex = handlesArr.map(h => {
+    const handlesHex = handlesArr.map((h) => {
       if (typeof h === "string") return h;
       return bytesToHex(h);
     });
@@ -197,29 +237,49 @@ class MockRelayerEncryptedInput {
     return this;
   }
 
-  addBool(v) { return this._add("ebool", v ? 1 : 0); }
-  add4(v) { return this._add("euint4", v | 0); }
-  add8(v) { return this._add("euint8", v | 0); }
-  add16(v) { return this._add("euint16", v | 0); }
-  add32(v) { return this._add("euint32", v | 0); }
-  add64(v) { return this._add("euint64", BigInt(v).toString()); }
-  add128(v) { return this._add("euint128", BigInt(v).toString()); }
-  add256(v) { return this._add("euint256", BigInt(v).toString()); }
-  addAddress(v) { return this._add("eaddress", v); }
+  addBool(v) {
+    return this._add("ebool", v ? 1 : 0);
+  }
+  add4(v) {
+    return this._add("euint4", v | 0);
+  }
+  add8(v) {
+    return this._add("euint8", v | 0);
+  }
+  add16(v) {
+    return this._add("euint16", v | 0);
+  }
+  add32(v) {
+    return this._add("euint32", v | 0);
+  }
+  add64(v) {
+    return this._add("euint64", BigInt(v).toString());
+  }
+  add128(v) {
+    return this._add("euint128", BigInt(v).toString());
+  }
+  add256(v) {
+    return this._add("euint256", BigInt(v).toString());
+  }
+  addAddress(v) {
+    return this._add("eaddress", v);
+  }
 
   async encrypt() {
     const chainIdNum = this.instance.chainId;
     // Le plugin attend contractChainId en hex string ("0x7a69" pour 31337)
     const contractChainIdHex = "0x" + BigInt(chainIdNum).toString(16);
 
-    const clearTextValuesBigInt = this.inputs.map(i => BigInt(i.value));
-    const clearTextValuesBigIntHex = clearTextValuesBigInt.map(v => ethers.toBeHex(v));
+    const clearTextValuesBigInt = this.inputs.map((i) => BigInt(i.value));
+    const clearTextValuesBigIntHex = clearTextValuesBigInt.map((v) => ethers.toBeHex(v));
     // fheTypes et fhevmTypes sont des nombres (enum FhevmType), pas des strings
-    const fheTypes = this.inputs.map(i => FhevmType[i.fhevmTypeName]);
+    const fheTypes = this.inputs.map((i) => FhevmType[i.fhevmTypeName]);
     const fhevmTypes = fheTypes;
-    const rand32List = this.inputs.map(i => bytesToHex(i.rand32));
+    const rand32List = this.inputs.map((i) => bytesToHex(i.rand32));
     const metadatas = this.inputs.map(() => ({
-      blockNumber: 0, index: 0, transactionHash: ethers.ZeroHash,
+      blockNumber: 0,
+      index: 0,
+      transactionHash: ethers.ZeroHash,
     }));
 
     const mockCiphertext = computeMockCiphertextWithZKProof(this.inputs);
@@ -227,11 +287,9 @@ class MockRelayerEncryptedInput {
 
     // Calcule les handles côté client (même algo que le mock-utils côté serveur)
     const blobDomain = new TextEncoder().encode(RAW_CT_HASH_DOMAIN_SEPARATOR);
-    const blobHashBytes = ethers.getBytes(
-      ethers.keccak256(bytesToHex(concatBytes(blobDomain, mockCiphertext)))
-    );
+    const blobHashBytes = ethers.getBytes(ethers.keccak256(bytesToHex(concatBytes(blobDomain, mockCiphertext))));
     const handles = this.inputs.map((input, idx) =>
-      computeHandle(blobHashBytes, this.instance.aclAddress, chainIdNum, input.fhevmTypeName, idx)
+      computeHandle(blobHashBytes, this.instance.aclAddress, chainIdNum, input.fhevmTypeName, idx),
     );
 
     const mockData = {
@@ -244,9 +302,27 @@ class MockRelayerEncryptedInput {
     };
 
     // Le plugin FHEVM exige les addresses en format checksummed (ethers.getAddress)
-    const checksummedContract = (() => { try { return ethers.getAddress(this.contractAddress); } catch { return this.contractAddress; } })();
-    const checksummedUser = (() => { try { return ethers.getAddress(this.userAddress); } catch { return this.userAddress; } })();
-    const checksummedAcl = (() => { try { return ethers.getAddress(this.instance.aclAddress); } catch { return this.instance.aclAddress; } })();
+    const checksummedContract = (() => {
+      try {
+        return ethers.getAddress(this.contractAddress);
+      } catch {
+        return this.contractAddress;
+      }
+    })();
+    const checksummedUser = (() => {
+      try {
+        return ethers.getAddress(this.userAddress);
+      } catch {
+        return this.userAddress;
+      }
+    })();
+    const checksummedAcl = (() => {
+      try {
+        return ethers.getAddress(this.instance.aclAddress);
+      } catch {
+        return this.instance.aclAddress;
+      }
+    })();
 
     const payload = {
       contractAddress: checksummedContract,
@@ -257,7 +333,7 @@ class MockRelayerEncryptedInput {
       mockData: { ...mockData, aclContractAddress: checksummedAcl },
     };
 
-    const response = await fetch("http://localhost:8545", {
+    const response = await fetch(getRpcUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -273,8 +349,8 @@ class MockRelayerEncryptedInput {
     }
 
     // Le serveur calcule les handles officiels, on les utilise directement
-    const serverHandles = (data.result.handles || []).map(h => h.startsWith("0x") ? h : "0x" + h);
-    const signatures = (data.result.signatures || []).map(s => s.startsWith("0x") ? s : "0x" + s);
+    const serverHandles = (data.result.handles || []).map((h) => (h.startsWith("0x") ? h : "0x" + h));
+    const signatures = (data.result.signatures || []).map((s) => (s.startsWith("0x") ? s : "0x" + s));
 
     // Si le serveur n'a pas renvoyé de handles, fallback sur le calcul local
     const finalHandles = serverHandles.length > 0 ? serverHandles : handles;
@@ -286,7 +362,7 @@ class MockRelayerEncryptedInput {
 }
 
 async function getRelayerMetadata() {
-  const response = await fetch("http://localhost:8545", {
+  const response = await fetch(getRpcUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

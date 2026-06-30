@@ -1,664 +1,957 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Vote Confidentiel - FHEVM Local Demo</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, system-ui, sans-serif;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            min-height: 100vh;
-            padding: 2rem;
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, system-ui, sans-serif;
+        background: #0a0a0a;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding: 2rem;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #8b5cf6;
+        margin-bottom: 0.5rem;
+        font-size: 1.8rem;
+      }
+      .subtitle {
+        color: #888;
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+      }
+      h2 {
+        color: #a78bfa;
+        margin: 1.5rem 0 1rem;
+        font-size: 1.2rem;
+      }
+      .card {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #a0a0a0;
+        font-size: 0.875rem;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 0.75rem;
+        background: #0a0a0a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 1rem;
+      }
+      button {
+        background: #7c3aed;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+      }
+      button:hover {
+        background: #6d28d9;
+      }
+      button:disabled {
+        background: #4a4a4a;
+        cursor: not-allowed;
+      }
+      button.secondary {
+        background: #1f2937;
+      }
+      button.secondary:hover {
+        background: #374151;
+      }
+      button.mini {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.75rem;
+        margin: 0;
+      }
+      .election {
+        border-left: 3px solid #7c3aed;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        background: #0f0f0f;
+        border-radius: 4px;
+      }
+      .election h3 {
+        color: #fff;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .election p {
+        color: #888;
+        font-size: 0.875rem;
+      }
+      .election .options {
+        color: #c4b5fd;
+        margin-top: 0.25rem;
+      }
+      .result {
+        background: #0f172a;
+        border: 1px solid #3b82f6;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-top: 1rem;
+      }
+      .result-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #1e3a5f;
+      }
+      .result-row:last-child {
+        border-bottom: none;
+      }
+      .result-row .votes {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #c026d3;
+      }
+      .election-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .results-inline {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-left: auto;
+      }
+      .results-inline .chip {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 999px;
+        padding: 0.15rem 0.6rem;
+        font-size: 0.75rem;
+        color: #cbd5e1;
+        white-space: nowrap;
+      }
+      .results-inline .chip strong {
+        color: #c084fc;
+        margin-left: 0.25rem;
+      }
+      .results-inline .chip.winner {
+        background: #3b1d65;
+        border-color: #7c3aed;
+        color: #fff;
+      }
+      .results-inline .chip.winner strong {
+        color: #fbbf24;
+      }
+      .status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .status.active {
+        background: #166534;
+        color: #4ade80;
+      }
+      .status.closed {
+        background: #991b1b;
+        color: #fca5a5;
+      }
+      .privacy-note {
+        background: #1e1e1e;
+        border: 1px dashed #444;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+      .privacy-note h3 {
+        color: #a78bfa;
+        margin-bottom: 0.5rem;
+      }
+      .privacy-note .private {
+        color: #4ade80;
+      }
+      .privacy-note .public {
+        color: #fca5a5;
+      }
+      #logs {
+        background: #0a0a0a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 1rem;
+        font-family: monospace;
+        font-size: 0.75rem;
+        max-height: 280px;
+        overflow-y: auto;
+        margin-top: 1rem;
+      }
+      #logs div {
+        margin-bottom: 0.25rem;
+        color: #888;
+        word-break: break-word;
+      }
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #1a1a1a;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border: 1px solid #2a2a2a;
+        font-size: 0.85rem;
+      }
+      .connected {
+        color: #4ade80;
+        font-weight: 600;
+      }
+      .disconnected {
+        color: #fca5a5;
+        font-weight: 600;
+      }
+      .encryption-info {
+        background: #1e293b;
+        border-left: 3px solid #10b981;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-size: 0.85rem;
+        color: #cbd5e1;
+        border-radius: 4px;
+      }
+      .encryption-info strong {
+        color: #4ade80;
+      }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .modal-overlay.open {
+        display: flex;
+      }
+      .modal {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        padding: 1.5rem;
+        max-width: 480px;
+        width: 100%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      }
+      .modal h3 {
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .modal h3.success {
+        color: #4ade80;
+      }
+      .modal h3.error {
+        color: #fca5a5;
+      }
+      .modal h3.info {
+        color: #a78bfa;
+      }
+      .modal h3.pending {
+        color: #fbbf24;
+      }
+      .modal p {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 0.75rem;
+        word-break: break-word;
+      }
+      .modal .modal-body {
+        margin-bottom: 1rem;
+      }
+      .modal .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+      .modal pre {
+        background: #0a0a0a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 0.75rem;
+        font-size: 0.8rem;
+        color: #cbd5e1;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        margin: 0.5rem 0;
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fbbf24;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #8b5cf6; margin-bottom: 0.5rem; font-size: 1.8rem; }
-        .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
-        h2 { color: #a78bfa; margin: 1.5rem 0 1rem; font-size: 1.2rem; }
-        .card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; color: #a0a0a0; font-size: 0.875rem; }
-        input, select {
-            width: 100%;
-            padding: 0.75rem;
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 1rem;
-        }
-        button {
-            background: #7c3aed;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-right: 0.5rem;
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-        }
-        button:hover { background: #6d28d9; }
-        button:disabled { background: #4a4a4a; cursor: not-allowed; }
-        button.secondary { background: #1f2937; }
-        button.secondary:hover { background: #374151; }
-        .election {
-            border-left: 3px solid #7c3aed;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.75rem;
-            background: #0f0f0f;
-            border-radius: 4px;
-        }
-        .election h3 { color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-        .election p { color: #888; font-size: 0.875rem; }
-        .election .options { color: #c4b5fd; margin-top: 0.25rem; }
-        .result {
-            background: #0f172a;
-            border: 1px solid #3b82f6;
-            border-radius: 4px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #1e3a5f;
-        }
-        .result-row:last-child { border-bottom: none; }
-        .result-row .votes {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #c026d3;
-        }
-        .election-meta {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .results-inline {
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 0.35rem;
-            margin-left: auto;
-        }
-        .results-inline .chip {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 999px;
-            padding: 0.15rem 0.6rem;
-            font-size: 0.75rem;
-            color: #cbd5e1;
-            white-space: nowrap;
-        }
-        .results-inline .chip strong {
-            color: #c084fc;
-            margin-left: 0.25rem;
-        }
-        .results-inline .chip.winner {
-            background: #3b1d65;
-            border-color: #7c3aed;
-            color: #fff;
-        }
-        .results-inline .chip.winner strong {
-            color: #fbbf24;
-        }
-        .status {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .status.active { background: #166534; color: #4ade80; }
-        .status.closed { background: #991b1b; color: #fca5a5; }
-        .privacy-note {
-            background: #1e1e1e;
-            border: 1px dashed #444;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 2rem;
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-        .privacy-note h3 { color: #a78bfa; margin-bottom: 0.5rem; }
-        .privacy-note .private { color: #4ade80; }
-        .privacy-note .public { color: #fca5a5; }
-        #logs {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 4px;
-            padding: 1rem;
-            font-family: monospace;
-            font-size: 0.75rem;
-            max-height: 280px;
-            overflow-y: auto;
-            margin-top: 1rem;
-        }
-        #logs div { margin-bottom: 0.25rem; color: #888; word-break: break-word; }
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a1a;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            border: 1px solid #2a2a2a;
-            font-size: 0.85rem;
-        }
-        .connected { color: #4ade80; font-weight: 600; }
-        .disconnected { color: #fca5a5; font-weight: 600; }
-        .encryption-info {
-            background: #1e293b;
-            border-left: 3px solid #10b981;
-            padding: 1rem;
-            margin: 1rem 0;
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            border-radius: 4px;
-        }
-        .encryption-info strong { color: #4ade80; }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        .modal-overlay.open { display: flex; }
-        .modal {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 1.5rem;
-            max-width: 480px;
-            width: 100%;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-        }
-        .modal h3 { margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .modal h3.success { color: #4ade80; }
-        .modal h3.error { color: #fca5a5; }
-        .modal h3.info { color: #a78bfa; }
-        .modal h3.pending { color: #fbbf24; }
-        .modal p { color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.75rem; word-break: break-word; }
-        .modal .modal-body { margin-bottom: 1rem; }
-        .modal .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-        .modal pre {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 4px;
-            padding: 0.75rem;
-            font-size: 0.8rem;
-            color: #cbd5e1;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            margin: 0.5rem 0;
-        }
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid #fbbf24;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>🔐 Vote Confidentiel avec FHEVM</h1>
-        <p class="subtitle">Démo locale - Système de vote avec chiffrement homomorphe (FHE) - Les votes sont chiffrés localement avant envoi</p>
+      <h1>🔐 Vote Confidentiel avec FHEVM</h1>
+      <p class="subtitle">
+        Démo locale - Système de vote avec chiffrement homomorphe (FHE) - Les votes sont chiffrés localement avant envoi
+      </p>
 
-        <div class="status-bar">
-            <span class="disconnected" id="connectionStatus">⚠ Connexion...</span>
-            <span id="chainInfo"></span>
+      <div class="status-bar">
+        <span class="disconnected" id="connectionStatus">⚠ Connexion...</span>
+        <span id="accountInfo" style="display: none"> 👤 <span id="accountLabel"></span> </span>
+        <span id="chainInfo"></span>
+        <button
+          class="secondary mini"
+          id="clearDataBtn"
+          onclick="window.clearLocalData()"
+          title="Effacer ma clé privée du localStorage"
+        >
+          🧹 Effacer mes données
+        </button>
+      </div>
+
+      <div class="card">
+        <h2>🔒 Voter (Chiffrement FHE réel)</h2>
+        <div class="form-group">
+          <label>Election</label>
+          <select id="voteElectionId" onchange="updateVoteOptions()"></select>
         </div>
-
-        <div class="card">
-            <h2>🔒 Voter (Chiffrement FHE réel)</h2>
-            <div class="form-group">
-                <label>Election</label>
-                <select id="voteElectionId" onchange="updateVoteOptions()"></select>
-            </div>
-            <div class="form-group">
-                <label>Option chiffrée</label>
-                <select id="voteOption"></select>
-            </div>
-            <button onclick="castVote()">🔒 Chiffrer et envoyer le vote</button>
-            <div class="encryption-info">
-                <strong>Processus :</strong>
-                <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    <li>Le SDK FHE génère un ciphertext (euint32) localement</li>
-                    <li>Une preuve (inputProof) est créée via le relayer mock</li>
-                    <li>La transaction est envoyée via ethers.js au contrat</li>
-                    <li>Le contrat additionne le vote chiffré sans le déchiffrer</li>
-                </ol>
-            </div>
+        <div class="form-group">
+          <label>Option chiffrée</label>
+          <select id="voteOption"></select>
         </div>
-
-        <div class="card">
-            <h2>📋 Créer une election</h2>
-            <div class="form-group">
-                <label>Titre</label>
-                <input type="text" id="electionTitle" placeholder="ex: Élection Délégués 2026">
-            </div>
-            <div class="form-group">
-                <label>Options (séparées par virgules)</label>
-                <input type="text" id="electionOptions" placeholder="ex: Alice, Bob, Charlie">
-            </div>
-            <button onclick="createElection()">Créer l'élection</button>
-            <button class="secondary" onclick="refreshElections()">🔄 Rafraîchir</button>
+        <button onclick="castVote()">🔒 Chiffrer et envoyer le vote</button>
+        <div class="encryption-info">
+          <strong>Processus :</strong>
+          <ol style="margin-left: 1.5rem; margin-top: 0.5rem">
+            <li>Le SDK FHE génère un ciphertext (euint32) localement</li>
+            <li>Une preuve (inputProof) est créée via le relayer mock</li>
+            <li>La transaction est envoyée via ethers.js au contrat</li>
+            <li>Le contrat additionne le vote chiffré sans le déchiffrer</li>
+          </ol>
         </div>
+      </div>
 
-        <div class="card">
-            <h2>📊 Elections et Résultats</h2>
-            <div id="electionsList">Chargement...</div>
+      <div class="card">
+        <h2>📋 Créer une election</h2>
+        <div class="form-group">
+          <label>Titre</label>
+          <input type="text" id="electionTitle" placeholder="ex: Élection Délégués 2026" />
         </div>
-
-        <div class="card">
-            <h2>🔓 Fermer election & révéler</h2>
-            <div class="form-group">
-                <label>ID Election</label>
-                <input type="number" id="resultElectionId" placeholder="ex: 1">
-            </div>
-            <button onclick="closeAndReadResults()">🔓 Fermer & révéler résultats</button>
+        <div class="form-group">
+          <label>Options (séparées par virgules)</label>
+          <input type="text" id="electionOptions" placeholder="ex: Alice, Bob, Charlie" />
         </div>
+        <button onclick="createElection()">Créer l'élection</button>
+        <button class="secondary" onclick="refreshElections()">🔄 Rafraîchir</button>
+      </div>
 
-        <div id="logs"></div>
+      <div class="card">
+        <h2>📊 Elections et Résultats</h2>
+        <div id="electionsList">Chargement...</div>
+      </div>
 
-        <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this)window.closePopup()">
-            <div class="modal">
-                <h3 id="modalTitle"></h3>
-                <div id="modalBody" class="modal-body"></div>
-                <div class="modal-actions">
-                    <button id="modalCloseBtn" onclick="window.closePopup()">Fermer</button>
-                </div>
-            </div>
+      <div class="card">
+        <h2>🔓 Fermer election & révéler</h2>
+        <div class="form-group">
+          <label>ID Election</label>
+          <input type="number" id="resultElectionId" placeholder="ex: 1" />
         </div>
+        <button onclick="closeAndReadResults()">🔓 Fermer & révéler résultats</button>
+      </div>
 
-        <div class="privacy-note">
-            <h3>🔒 Confidentialité</h3>
-            <p><span class="private">✓ PRIVÉ (chiffré on-chain) :</span></p>
-            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                <li>Le vote de chaque électeur</li>
-                <li>Aucune association voter → vote</li>
-                <li>Les totaux intermédiaires pendant le vote</li>
-            </ul>
-            <p style="margin-top: 1rem;"><span class="public">✗ PUBLIC (visible on-chain) :</span></p>
-            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                <li>Existence et titre de l'élection</li>
-                <li>Options/candidats</li>
-                <li>Résultats finaux (après déchiffrement public)</li>
-                <li>Nombre de votants</li>
-            </ul>
+      <div id="logs"></div>
+
+      <div id="modalOverlay" class="modal-overlay" onclick="if (event.target === this) window.closePopup();">
+        <div class="modal">
+          <h3 id="modalTitle"></h3>
+          <div id="modalBody" class="modal-body"></div>
+          <div class="modal-actions">
+            <button id="modalCloseBtn" onclick="window.closePopup()">Fermer</button>
+          </div>
         </div>
+      </div>
+
+      <div class="privacy-note">
+        <h3>🔒 Confidentialité</h3>
+        <p><span class="private">✓ PRIVÉ (chiffré on-chain) :</span></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem">
+          <li>Le vote de chaque électeur</li>
+          <li>Aucune association voter → vote</li>
+          <li>Les totaux intermédiaires pendant le vote</li>
+        </ul>
+        <p style="margin-top: 1rem"><span class="public">✗ PUBLIC (visible on-chain) :</span></p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem">
+          <li>Existence et titre de l'élection</li>
+          <li>Options/candidats</li>
+          <li>Résultats finaux (après déchiffrement public)</li>
+          <li>Nombre de votants</li>
+        </ul>
+      </div>
     </div>
 
     <script type="module">
-        // v=5 : cache-buster pour forcer le navigateur à recharger après modif du mock
-        import { createInstance } from "./mock-fhevm.js?v=5";
+      // v=5 : cache-buster pour forcer le navigateur à recharger après modif du mock
+      import { createInstance } from "./mock-fhevm.js?v=5";
 
-        const RPC_URL = "http://localhost:8545";
-        const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+      const HOST = window.location.hostname || "localhost";
+      const PROTO = window.location.protocol || "http:";
+      const RPC_URL = new URL(window.location.href).searchParams.get("rpc") || `${PROTO}//${HOST}:8545`;
+      const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
-        let instance;
-        let contract;
-        let provider;
-        let signer;
-        let userAddress;
-        let chainId;
+      let instance;
+      let contract;
+      let provider;
+      let signer;
+      let userAddress;
+      let chainId;
 
-        const ABI = [
-            'function createElection(string title, string[] options) returns (uint256)',
-            'function castVote(uint256 electionId, bytes32 encryptedOption, bytes inputProof) external',
-            'function closeElection(uint256 electionId) external',
-            'function getElection(uint256 electionId) view returns (string title, string[] options, bool isActive, uint256 voterCount)',
-            'function getEncryptedTally(uint256 electionId, uint256 optionIndex) view returns (bytes32)',
-            'function electionCounter() view returns (uint256)'
-        ];
+      const ABI = [
+        "function createElection(string title, string[] options) returns (uint256)",
+        "function castVote(uint256 electionId, bytes32 encryptedOption, bytes inputProof) external",
+        "function closeElection(uint256 electionId) external",
+        "function getElection(uint256 electionId) view returns (string title, string[] options, bool isActive, uint256 voterCount)",
+        "function getEncryptedTally(uint256 electionId, uint256 optionIndex) view returns (bytes32)",
+        "function electionCounter() view returns (uint256)",
+      ];
 
-        function log(msg, type = "info") {
-            const logs = document.getElementById("logs");
-            const colors = { info: "#a0a0a0", error: "#fca5a5", success: "#86efac", warning: "#fbbf24" };
-            const div = document.createElement("div");
-            div.style.color = colors[type] || colors.info;
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            logs.prepend(div);
-            console.log(msg);
+      function log(msg, type = "info") {
+        const logs = document.getElementById("logs");
+        const colors = { info: "#a0a0a0", error: "#fca5a5", success: "#86efac", warning: "#fbbf24" };
+        const div = document.createElement("div");
+        div.style.color = colors[type] || colors.info;
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logs.prepend(div);
+        console.log(msg);
+      }
+
+      function showPopup(title, body, type = "info", opts = {}) {
+        const overlay = document.getElementById("modalOverlay");
+        const titleEl = document.getElementById("modalTitle");
+        const bodyEl = document.getElementById("modalBody");
+        const closeBtn = document.getElementById("modalCloseBtn");
+        titleEl.className = type;
+        titleEl.innerHTML = type === "pending" ? `<span class="spinner"></span> ${title}` : title;
+        if (typeof body === "string") {
+          bodyEl.innerHTML = `<p>${body}</p>`;
+        } else {
+          bodyEl.innerHTML = "";
+          bodyEl.appendChild(body);
+        }
+        closeBtn.textContent = opts.closeLabel || "Fermer";
+        closeBtn.style.display = opts.hideClose ? "none" : "";
+        overlay.classList.add("open");
+      }
+
+      function closePopup() {
+        document.getElementById("modalOverlay").classList.remove("open");
+      }
+
+      // === Gestion de l'identité (clé privée) ===
+      // Aucune PK n'est embarquée dans le bundle. Chaque votant colle la sienne
+      // (reçue sur un slip papier de l'admin). La PK reste dans localStorage.
+      const STORAGE_KEY = "cv_pk_v1";
+      const STORAGE_ADDR_KEY = "cv_addr_v1";
+
+      function loadStoredIdentity() {
+        try {
+          const pk = localStorage.getItem(STORAGE_KEY);
+          const addr = localStorage.getItem(STORAGE_ADDR_KEY);
+          if (pk && addr) return { pk, addr };
+        } catch {}
+        return null;
+      }
+
+      function saveIdentity(pk, addr) {
+        try {
+          localStorage.setItem(STORAGE_KEY, pk);
+          localStorage.setItem(STORAGE_ADDR_KEY, addr);
+        } catch (e) {
+          log(`⚠ Impossible de mémoriser la PK: ${e.message}`, "warning");
+        }
+      }
+
+      function clearLocalData() {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(STORAGE_ADDR_KEY);
+          localStorage.removeItem(RESULTS_CACHE_KEY);
+        } catch {}
+        log("🧹 Données locales effacées", "info");
+        showPopup(
+          "Données effacées",
+          "Ta clé privée et les résultats en cache ont été supprimés du localStorage. La page va se recharger.",
+          "info",
+          { closeLabel: "Recharger", hideClose: false },
+        );
+        setTimeout(() => window.location.reload(), 1500);
+      }
+
+      function showWelcomeModal() {
+        const body = document.createElement("div");
+        body.innerHTML = `
+                <p>Bienvenue ! Cette démo de vote confidentiel tourne sur un réseau local.</p>
+                <p><strong>Pour voter, colle la clé privée</strong> que l'admin t'a remise sur un slip papier.</p>
+                <div style="background:#1e293b;border-left:3px solid #f59e0b;padding:0.75rem;border-radius:4px;margin:0.75rem 0;font-size:0.85rem;color:#fbbf24;">
+                    ⚠️ <strong>Avertissement</strong> : ta clé privée reste dans <em>ton</em> appareil
+                    (localStorage). Elle n'est jamais envoyée au serveur.
+                    Vérifie que l'URL de cette page correspond bien à celle annoncée par l'admin
+                    (<code style="background:#0a0a0a;padding:0.1rem 0.3rem;border-radius:3px;">${window.location.origin}</code>).
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Clé privée (0x…)</label>
+                    <input type="password" id="welcomePk" placeholder="0x..." autocomplete="off" style="font-family:monospace;font-size:0.85rem;">
+                </div>
+                <p id="welcomeError" style="color:#fca5a5;font-size:0.85rem;display:none;margin-top:0.5rem;"></p>
+                <p style="font-size:0.8rem;color:#888;margin-top:0.75rem;">
+                    💡 Une seule clé par appareil. Si tu changes d'avis, clique « 🧹 Effacer mes données ».
+                </p>`;
+        showPopup("🔑 Identifie-toi pour voter", body, "info");
+        // Override le bouton "Fermer" en "Valider"
+        const closeBtn = document.getElementById("modalCloseBtn");
+        closeBtn.textContent = "Valider";
+        closeBtn.style.display = "";
+        closeBtn.onclick = async () => {
+          const pk = document.getElementById("welcomePk").value.trim();
+          const errEl = document.getElementById("welcomeError");
+          errEl.style.display = "none";
+          if (!pk) {
+            errEl.textContent = "Colle une clé privée (0x…).";
+            errEl.style.display = "block";
+            return;
+          }
+          if (!/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+            errEl.textContent = "Format invalide. La clé doit faire 64 caractères hexadécimaux après 0x.";
+            errEl.style.display = "block";
+            return;
+          }
+          try {
+            const w = new ethers.Wallet(pk);
+            saveIdentity(pk, w.address);
+            closePopup();
+            await bootWithIdentity(pk);
+          } catch (e) {
+            errEl.textContent = "Clé invalide : " + (e.message || e);
+            errEl.style.display = "block";
+          }
+        };
+        // Validation par Entrée
+        setTimeout(() => {
+          const inp = document.getElementById("welcomePk");
+          if (inp)
+            inp.addEventListener("keydown", (ev) => {
+              if (ev.key === "Enter") closeBtn.click();
+            });
+        }, 50);
+      }
+
+      async function bootWithIdentity(pk) {
+        const status = document.getElementById("connectionStatus");
+        try {
+          if (typeof ethers === "undefined") {
+            throw new Error("ethers.js non chargé");
+          }
+          provider = new ethers.JsonRpcProvider(RPC_URL);
+          const network = await provider.getNetwork();
+          chainId = Number(network.chainId);
+          log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
+
+          signer = new ethers.Wallet(pk, provider);
+          userAddress = await signer.getAddress();
+          const balance = await provider.getBalance(userAddress);
+          log(
+            `Compte: ${userAddress.substring(0, 10)}...${userAddress.substring(38)} | ${ethers.formatEther(balance).substring(0, 8)} ETH`,
+            "info",
+          );
+
+          // Avertissement solde
+          if (balance === 0n) {
+            log(
+              `⚠ Ce compte n'a pas d'ETH. Les votes échoueront. Contacte l'admin pour qu'il crédite slip #N.`,
+              "warning",
+            );
+          }
+
+          // Afficher l'identifiant dans la barre de statut
+          document.getElementById("accountLabel").textContent =
+            `${userAddress.substring(0, 6)}…${userAddress.substring(38)}`;
+          document.getElementById("accountInfo").style.display = "inline";
+
+          log("Initialisation mock FHE (handles déterministes)...", "info");
+          instance = await createInstance();
+          log("✓ Mock FHE SDK initialisé", "success");
+
+          contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+          log(`Contrat: ${CONTRACT_ADDRESS.substring(0, 12)}...`, "info");
+
+          status.textContent = "✓ Connecté (FHE mock local)";
+          status.className = "connected";
+          document.getElementById("chainInfo").textContent = `Chain ${chainId}`;
+
+          await refreshElections();
+        } catch (e) {
+          log(`❌ Erreur connexion: ${e.message}`, "error");
+          status.textContent = "⚠ Erreur";
+          status.className = "disconnected";
+          if (e.stack) console.error(e.stack);
+        }
+      }
+
+      async function init() {
+        const status = document.getElementById("connectionStatus");
+        // Test RPC léger d'abord (sans signer) pour vérifier la connectivité réseau
+        try {
+          if (typeof ethers === "undefined") {
+            throw new Error("ethers.js non chargé");
+          }
+          provider = new ethers.JsonRpcProvider(RPC_URL);
+          const network = await provider.getNetwork();
+          chainId = Number(network.chainId);
+          status.textContent = `✓ RPC joignable (chain ${chainId})`;
+          status.className = "connected";
+          document.getElementById("chainInfo").textContent = `Chain ${chainId}`;
+          log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
+        } catch (e) {
+          log(`❌ RPC injoignable (${RPC_URL}): ${e.message}`, "error");
+          status.textContent = `⚠ RPC injoignable`;
+          status.className = "disconnected";
+          return;
         }
 
-        function showPopup(title, body, type = "info", opts = {}) {
-            const overlay = document.getElementById("modalOverlay");
-            const titleEl = document.getElementById("modalTitle");
-            const bodyEl = document.getElementById("modalBody");
-            const closeBtn = document.getElementById("modalCloseBtn");
-            titleEl.className = type;
-            titleEl.innerHTML = type === "pending"
-                ? `<span class="spinner"></span> ${title}`
-                : title;
-            if (typeof body === "string") {
-                bodyEl.innerHTML = `<p>${body}</p>`;
-            } else {
-                bodyEl.innerHTML = "";
-                bodyEl.appendChild(body);
-            }
-            closeBtn.textContent = opts.closeLabel || "Fermer";
-            closeBtn.style.display = opts.hideClose ? "none" : "";
-            overlay.classList.add("open");
+        // Demander l'identité (depuis localStorage ou via modale de bienvenue)
+        const stored = loadStoredIdentity();
+        if (stored) {
+          await bootWithIdentity(stored.pk);
+        } else {
+          showWelcomeModal();
         }
+      }
 
-        function closePopup() {
-            document.getElementById("modalOverlay").classList.remove("open");
+      // Cache des résultats déchiffrés (localStorage) pour qu'ils restent visibles
+      // après fermeture de la popup ou rafraîchissement automatique.
+      const RESULTS_CACHE_KEY = "cv_results_v1";
+      function loadResultsCache() {
+        try {
+          return JSON.parse(localStorage.getItem(RESULTS_CACHE_KEY) || "{}");
+        } catch {
+          return {};
         }
+      }
+      function saveResultToCache(eid, payload) {
+        const cache = loadResultsCache();
+        cache[String(eid)] = payload;
+        localStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(cache));
+      }
+      function renderResultCard(eid, payload) {
+        const { results } = payload;
+        const maxVotes = Math.max(...results.map((r) => r.votes), 1);
+        const winner = results.reduce((a, b) => (a.votes >= b.votes ? a : b), results[0]);
+        const chips = results
+          .map((r) => {
+            const pct = ((r.votes / maxVotes) * 100).toFixed(0);
+            const isWinner = r === winner && r.votes > 0;
+            return `<span class="chip ${isWinner ? "winner" : ""}" title="${pct}%">${isWinner ? "🏆 " : ""}${escapeHtml(r.option)} <strong>${r.votes}</strong></span>`;
+          })
+          .join("");
+        return `<div class="results-inline">${chips}</div>`;
+      }
 
-        async function init() {
-            const status = document.getElementById("connectionStatus");
-            try {
-                // 1. ethers.js provider direct
-                if (typeof ethers === "undefined") {
-                    throw new Error("ethers.js non chargé");
-                }
-                provider = new ethers.JsonRpcProvider(RPC_URL);
-                const network = await provider.getNetwork();
-                chainId = Number(network.chainId);
-                log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+        );
+      }
 
-                // 2. Hardhat account #0
-                const HARHDAT_PK = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-                signer = new ethers.Wallet(HARHDAT_PK, provider);
-                userAddress = await signer.getAddress();
-                const balance = await provider.getBalance(userAddress);
-                log(`Compte: ${userAddress.substring(0,8)}... | ${ethers.formatEther(balance).substring(0, 8)} ETH`, "info");
+      async function refreshElections() {
+        if (!contract) return;
+        try {
+          const count = await contract.electionCounter();
+          const select = document.getElementById("voteElectionId");
+          const list = document.getElementById("electionsList");
+          const cache = loadResultsCache();
 
-                // 3. Initialiser le mock SDK FHE
-                log("Initialisation mock FHE (handles déterministes)...", "info");
-                instance = await createInstance();
-                log("✓ Mock FHE SDK initialisé", "success");
+          select.innerHTML = "";
+          list.innerHTML = "";
 
-                // 4. Contract
-                contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-                log(`Contrat: ${CONTRACT_ADDRESS.substring(0,12)}...`, "info");
+          if (Number(count) === 0) {
+            list.innerHTML = '<p style="color:#888;">Aucune election. Créez-en une ci-dessus.</p>';
+            return;
+          }
 
-                status.textContent = "✓ Connecté (FHE mock local)";
-                status.className = "connected";
-                document.getElementById("chainInfo").textContent = `Chain ${chainId}`;
-
-                await refreshElections();
-            } catch (e) {
-                log(`❌ Erreur connexion: ${e.message}`, "error");
-                status.textContent = "⚠ Erreur";
-                status.className = "disconnected";
-                if (e.stack) console.error(e.stack);
-            }
-        }
-
-        // Cache des résultats déchiffrés (localStorage) pour qu'ils restent visibles
-        // après fermeture de la popup ou rafraîchissement automatique.
-        const RESULTS_CACHE_KEY = "cv_results_v1";
-        function loadResultsCache() {
-            try { return JSON.parse(localStorage.getItem(RESULTS_CACHE_KEY) || "{}"); }
-            catch { return {}; }
-        }
-        function saveResultToCache(eid, payload) {
-            const cache = loadResultsCache();
-            cache[String(eid)] = payload;
-            localStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(cache));
-        }
-        function renderResultCard(eid, payload) {
-            const { results } = payload;
-            const maxVotes = Math.max(...results.map((r) => r.votes), 1);
-            const winner = results.reduce((a, b) => (a.votes >= b.votes ? a : b), results[0]);
-            const chips = results.map((r) => {
-                const pct = ((r.votes / maxVotes) * 100).toFixed(0);
-                const isWinner = r === winner && r.votes > 0;
-                return `<span class="chip ${isWinner ? "winner" : ""}" title="${pct}%">${isWinner ? "🏆 " : ""}${escapeHtml(r.option)} <strong>${r.votes}</strong></span>`;
-            }).join("");
-            return `<div class="results-inline">${chips}</div>`;
-        }
-
-        function escapeHtml(s) {
-            return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-        }
-
-        async function refreshElections() {
-            if (!contract) return;
-            try {
-                const count = await contract.electionCounter();
-                const select = document.getElementById("voteElectionId");
-                const list = document.getElementById("electionsList");
-                const cache = loadResultsCache();
-
-                select.innerHTML = "";
-                list.innerHTML = "";
-
-                if (Number(count) === 0) {
-                    list.innerHTML = '<p style="color:#888;">Aucune election. Créez-en une ci-dessus.</p>';
-                    return;
-                }
-
-                for (let i = 1; i <= Number(count); i++) {
-                    const [title, options, isActive, voterCount] = await contract.getElection(i);
-                    const badge = isActive
-                        ? '<span class="status active">Active</span>'
-                        : '<span class="status closed">Fermée</span>';
-                    const cached = !isActive ? cache[String(i)] : null;
-                    const resultsHtml = cached ? renderResultCard(i, cached) : "";
-                    list.innerHTML += `
+          for (let i = 1; i <= Number(count); i++) {
+            const [title, options, isActive, voterCount] = await contract.getElection(i);
+            const badge = isActive
+              ? '<span class="status active">Active</span>'
+              : '<span class="status closed">Fermée</span>';
+            const cached = !isActive ? cache[String(i)] : null;
+            const resultsHtml = cached ? renderResultCard(i, cached) : "";
+            list.innerHTML += `
                         <div class="election">
                             <h3>#${i}: ${escapeHtml(title)} ${badge}</h3>
                             <p class="options">${options.map(escapeHtml).join(" • ")}</p>
                             <p class="election-meta">Votants: ${voterCount}${resultsHtml}</p>
                         </div>`;
-                    if (isActive) {
-                        select.innerHTML += `<option value="${i}">#${i} - ${escapeHtml(title)}</option>`;
-                    }
-                }
-                if (select.options.length > 0) updateVoteOptions();
-            } catch (e) {
-                log(`Erreur refresh: ${e.message}`, "error");
+            if (isActive) {
+              select.innerHTML += `<option value="${i}">#${i} - ${escapeHtml(title)}</option>`;
             }
+          }
+          if (select.options.length > 0) updateVoteOptions();
+        } catch (e) {
+          log(`Erreur refresh: ${e.message}`, "error");
         }
+      }
 
-        async function updateVoteOptions() {
-            if (!contract) return;
-            try {
-                const electionId = document.getElementById("voteElectionId").value;
-                if (!electionId) return;
-                const [, options] = await contract.getElection(electionId);
-                const select = document.getElementById("voteOption");
-                select.innerHTML = "";
-                options.forEach((opt, i) => {
-                    select.innerHTML += `<option value="${i}">${opt}</option>`;
-                });
-            } catch (e) {
-                log(`Erreur: ${e.message}`, "error");
-            }
+      async function updateVoteOptions() {
+        if (!contract) return;
+        try {
+          const electionId = document.getElementById("voteElectionId").value;
+          if (!electionId) return;
+          const [, options] = await contract.getElection(electionId);
+          const select = document.getElementById("voteOption");
+          select.innerHTML = "";
+          options.forEach((opt, i) => {
+            select.innerHTML += `<option value="${i}">${opt}</option>`;
+          });
+        } catch (e) {
+          log(`Erreur: ${e.message}`, "error");
         }
+      }
 
-        async function createElection() {
-            if (!signer || !contract) return showPopup("⚠ Non connecté", "Le wallet/contrat n'est pas initialisé. Vérifie que Hardhat tourne sur :8545.", "error");
-            const title = document.getElementById("electionTitle").value.trim();
-            const optionsStr = document.getElementById("electionOptions").value.trim();
-            const options = optionsStr.split(",").map(s => s.trim()).filter(Boolean);
-            if (!title) {
-                showPopup("❌ Titre manquant", "Le titre de l'élection est obligatoire.", "error");
-                return log("❌ Erreur: le titre est vide", "error");
-            }
-            if (options.length < 2) {
-                showPopup("❌ Options insuffisantes", `Il faut au moins 2 options. Tu en as fourni ${options.length}.`, "error");
-                return;
-            }
-            if (options.length > 100) {
-                showPopup("❌ Trop d'options", `Maximum 100 options autorisées. Tu en as fourni ${options.length}.`, "error");
-                return;
-            }
-            if (options.some(o => o.length === 0)) {
-                showPopup("❌ Option vide", "Une des options est vide.", "error");
-                return;
-            }
-            showPopup("Création en cours…", `Envoi de la transaction pour "${title}" avec ${options.length} options.`, "pending", { hideClose: true });
-            try {
-                log(`Création election "${title}"...`);
-                const tx = await contract.createElection(title, options);
-                const receipt = await tx.wait();
-                const newId = await contract.electionCounter();
-                log(`✓ Election #${newId} créée (block ${receipt.blockNumber})`, "success");
-                document.getElementById("electionTitle").value = "";
-                document.getElementById("electionOptions").value = "";
-                const body = document.createElement("div");
-                body.innerHTML = `
+      async function createElection() {
+        if (!signer || !contract)
+          return showPopup(
+            "⚠ Non connecté",
+            "Le wallet/contrat n'est pas initialisé. Vérifie que Hardhat tourne sur :8545.",
+            "error",
+          );
+        const title = document.getElementById("electionTitle").value.trim();
+        const optionsStr = document.getElementById("electionOptions").value.trim();
+        const options = optionsStr
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (!title) {
+          showPopup("❌ Titre manquant", "Le titre de l'élection est obligatoire.", "error");
+          return log("❌ Erreur: le titre est vide", "error");
+        }
+        if (options.length < 2) {
+          showPopup(
+            "❌ Options insuffisantes",
+            `Il faut au moins 2 options. Tu en as fourni ${options.length}.`,
+            "error",
+          );
+          return;
+        }
+        if (options.length > 100) {
+          showPopup("❌ Trop d'options", `Maximum 100 options autorisées. Tu en as fourni ${options.length}.`, "error");
+          return;
+        }
+        if (options.some((o) => o.length === 0)) {
+          showPopup("❌ Option vide", "Une des options est vide.", "error");
+          return;
+        }
+        showPopup(
+          "Création en cours…",
+          `Envoi de la transaction pour "${title}" avec ${options.length} options.`,
+          "pending",
+          { hideClose: true },
+        );
+        try {
+          log(`Création election "${title}"...`);
+          const tx = await contract.createElection(title, options);
+          const receipt = await tx.wait();
+          const newId = await contract.electionCounter();
+          log(`✓ Election #${newId} créée (block ${receipt.blockNumber})`, "success");
+          document.getElementById("electionTitle").value = "";
+          document.getElementById("electionOptions").value = "";
+          const body = document.createElement("div");
+          body.innerHTML = `
                     <p><strong>${title}</strong> a été créée avec succès.</p>
                     <pre>ID      : #${newId}
 Block   : ${receipt.blockNumber}
 Options : ${options.join(", ")}
 Gas     : ${receipt.gasUsed.toString()}</pre>`;
-                showPopup("✓ Élection créée", body, "success");
-                await refreshElections();
-            } catch (e) {
-                const reason = e.reason || e.shortMessage || e.message || String(e);
-                log(`❌ Erreur création: ${reason}`, "error");
-                const body = document.createElement("div");
-                body.innerHTML = `<pre>${reason}</pre>`;
-                showPopup("❌ Échec de la création", body, "error");
-                if (e.stack) console.error(e);
-            }
+          showPopup("✓ Élection créée", body, "success");
+          await refreshElections();
+        } catch (e) {
+          const reason = e.reason || e.shortMessage || e.message || String(e);
+          log(`❌ Erreur création: ${reason}`, "error");
+          const body = document.createElement("div");
+          body.innerHTML = `<pre>${reason}</pre>`;
+          showPopup("❌ Échec de la création", body, "error");
+          if (e.stack) console.error(e);
         }
+      }
 
-        async function castVote() {
-            if (!signer || !contract || !instance) {
-                return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
-            }
-            const electionId = document.getElementById("voteElectionId").value;
-            const optionIndex = parseInt(document.getElementById("voteOption").value);
-            const optionLabel = document.getElementById("voteOption").options[document.getElementById("voteOption").selectedIndex]?.text || `option ${optionIndex}`;
-            if (!electionId) {
-                return showPopup("❌ Aucune élection", "Choisis une élection dans la liste.", "error");
-            }
-            showPopup("Chiffrement du vote…", "Génération locale du ciphertext FHE + input proof via le relayer mock.", "pending", { hideClose: true });
-            try {
-                log(`Chiffrement local du vote (option ${optionIndex})...`);
+      async function castVote() {
+        if (!signer || !contract || !instance) {
+          return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
+        }
+        const electionId = document.getElementById("voteElectionId").value;
+        const optionIndex = parseInt(document.getElementById("voteOption").value);
+        const optionLabel =
+          document.getElementById("voteOption").options[document.getElementById("voteOption").selectedIndex]?.text ||
+          `option ${optionIndex}`;
+        if (!electionId) {
+          return showPopup("❌ Aucune élection", "Choisis une élection dans la liste.", "error");
+        }
+        showPopup(
+          "Chiffrement du vote…",
+          "Génération locale du ciphertext FHE + input proof via le relayer mock.",
+          "pending",
+          { hideClose: true },
+        );
+        try {
+          log(`Chiffrement local du vote (option ${optionIndex})...`);
 
-                const input = instance.createEncryptedInput(
-                    CONTRACT_ADDRESS,
-                    userAddress,
-                );
-                input.add32(optionIndex);
-                const encrypted = await input.encrypt();
+          const input = instance.createEncryptedInput(CONTRACT_ADDRESS, userAddress);
+          input.add32(optionIndex);
+          const encrypted = await input.encrypt();
 
-                log(`Envoi du vote chiffré (handle=${encrypted.handles[0].substring(0, 18)}...)`);
-                const tx = await contract.castVote(
-                    electionId,
-                    encrypted.handles[0],
-                    encrypted.inputProof,
-                );
-                const receipt = await tx.wait();
-                log(`✓ Vote chiffré envoyé ! Block ${receipt.blockNumber}`, "success");
-                const body = document.createElement("div");
-                body.innerHTML = `
+          log(`Envoi du vote chiffré (handle=${encrypted.handles[0].substring(0, 18)}...)`);
+          const tx = await contract.castVote(electionId, encrypted.handles[0], encrypted.inputProof);
+          const receipt = await tx.wait();
+          log(`✓ Vote chiffré envoyé ! Block ${receipt.blockNumber}`, "success");
+          const body = document.createElement("div");
+          body.innerHTML = `
                     <p>Vote pour <strong>${optionLabel}</strong> sur l'élection <strong>#${electionId}</strong> envoyé.</p>
                     <pre>Handle   : ${encrypted.handles[0].substring(0, 42)}…
 Block    : ${receipt.blockNumber}
 Gas      : ${receipt.gasUsed.toString()}
 Status   : confirmé on-chain</pre>
                     <p style="color:#4ade80;">🔒 Ton vote reste chiffré. Le total sera révélé à la clôture.</p>`;
-                showPopup("✓ Vote enregistré", body, "success");
-            } catch (e) {
-                const reason = e.reason || e.shortMessage || e.message || String(e);
-                log(`Erreur vote: ${reason}`, "error");
-                const body = document.createElement("div");
-                body.innerHTML = `<pre>${reason}</pre>`;
-                showPopup("❌ Échec du vote", body, "error");
-                if (e.stack) console.error(e);
-            }
+          showPopup("✓ Vote enregistré", body, "success");
+        } catch (e) {
+          const reason = e.reason || e.shortMessage || e.message || String(e);
+          log(`Erreur vote: ${reason}`, "error");
+          const body = document.createElement("div");
+          body.innerHTML = `<pre>${reason}</pre>`;
+          showPopup("❌ Échec du vote", body, "error");
+          if (e.stack) console.error(e);
         }
+      }
 
-        async function closeAndReadResults() {
-            if (!signer || !contract || !instance) {
-                return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
+      async function closeAndReadResults() {
+        if (!signer || !contract || !instance) {
+          return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
+        }
+        const electionId = parseInt(document.getElementById("resultElectionId").value);
+        if (!electionId) {
+          return showPopup("❌ ID manquant", "Saisis l'ID de l'élection à fermer.", "error");
+        }
+        showPopup(
+          "Fermeture en cours…",
+          `Envoi de closeElection(#${electionId}) puis déchiffrement public des totaux.`,
+          "pending",
+          { hideClose: true },
+        );
+        try {
+          log(`Fermeture election ${electionId}...`);
+          const tx = await contract.closeElection(electionId);
+          await tx.wait();
+          log(`✓ Election fermée`, "success");
+
+          log("Déchiffrement public des résultats...");
+          const [title, options, , voterCount] = await contract.getElection(electionId);
+
+          const results = [];
+          for (let i = 0; i < Number(options.length); i++) {
+            const handle = await contract.getEncryptedTally(electionId, i);
+            if (handle && handle !== ethers.ZeroHash) {
+              const decrypted = await instance.publicDecrypt([handle]);
+              const value = decrypted[handle];
+              const num = typeof value === "bigint" ? Number(value) : Number(value);
+              results.push({ option: options[i], votes: num });
+              log(`  ${options[i]}: ${num} votes`, "info");
+            } else {
+              results.push({ option: options[i], votes: 0 });
             }
-            const electionId = parseInt(document.getElementById("resultElectionId").value);
-            if (!electionId) {
-                return showPopup("❌ ID manquant", "Saisis l'ID de l'élection à fermer.", "error");
-            }
-            showPopup("Fermeture en cours…", `Envoi de closeElection(#${electionId}) puis déchiffrement public des totaux.`, "pending", { hideClose: true });
-            try {
-                log(`Fermeture election ${electionId}...`);
-                const tx = await contract.closeElection(electionId);
-                await tx.wait();
-                log(`✓ Election fermée`, "success");
+          }
 
-                log("Déchiffrement public des résultats...");
-                const [title, options, , voterCount] = await contract.getElection(electionId);
+          // Cache pour que le résultat reste visible après refresh / fermeture popup
+          saveResultToCache(electionId, { title, options, results, voterCount: Number(voterCount) });
 
-                const results = [];
-                for (let i = 0; i < Number(options.length); i++) {
-                    const handle = await contract.getEncryptedTally(electionId, i);
-                    if (handle && handle !== ethers.ZeroHash) {
-                        const decrypted = await instance.publicDecrypt([handle]);
-                        const value = decrypted[handle];
-                        const num = typeof value === "bigint" ? Number(value) : Number(value);
-                        results.push({ option: options[i], votes: num });
-                        log(`  ${options[i]}: ${num} votes`, "info");
-                    } else {
-                        results.push({ option: options[i], votes: 0 });
-                    }
-                }
-
-                // Cache pour que le résultat reste visible après refresh / fermeture popup
-                saveResultToCache(electionId, { title, options, results, voterCount: Number(voterCount) });
-
-                // Popup résultats — version compacte (les chips détaillées sont dans la liste)
-                const popupBody = document.createElement("div");
-                popupBody.innerHTML = `
+          // Popup résultats — version compacte (les chips détaillées sont dans la liste)
+          const popupBody = document.createElement("div");
+          popupBody.innerHTML = `
                     <p><strong>Élection #${electionId}</strong> fermée et déchiffrée.</p>
                     ${renderResultCard(electionId, { title, options, results, voterCount: Number(voterCount) })}
                     <pre>Total votants : ${voterCount}</pre>
                     <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">Le résultat reste visible à côté de la mention de l'élection.</p>`;
-                showPopup("🏆 Résultats", popupBody, "success");
+          showPopup("🏆 Résultats", popupBody, "success");
 
-                await refreshElections();
-            } catch (e) {
-                const reason = e.reason || e.shortMessage || e.message || String(e);
-                log(`Erreur: ${reason}`, "error");
-                const body = document.createElement("div");
-                body.innerHTML = `<pre>${reason}</pre>`;
-                showPopup("❌ Échec", body, "error");
-                if (e.stack) console.error(e);
-            }
+          await refreshElections();
+        } catch (e) {
+          const reason = e.reason || e.shortMessage || e.message || String(e);
+          log(`Erreur: ${reason}`, "error");
+          const body = document.createElement("div");
+          body.innerHTML = `<pre>${reason}</pre>`;
+          showPopup("❌ Échec", body, "error");
+          if (e.stack) console.error(e);
         }
+      }
 
-        init();
-        setInterval(refreshElections, 8000);
+      init();
+      setInterval(refreshElections, 8000);
 
-        // Expose les handlers onclick (script type=module a une portée isolée)
-        window.createElection = createElection;
-        window.castVote = castVote;
-        window.refreshElections = refreshElections;
-        window.closeAndReadResults = closeAndReadResults;
-        window.updateVoteOptions = updateVoteOptions;
-        window.closePopup = closePopup;
+      // Expose les handlers onclick (script type=module a une portée isolée)
+      window.createElection = createElection;
+      window.castVote = castVote;
+      window.refreshElections = refreshElections;
+      window.closeAndReadResults = closeAndReadResults;
+      window.updateVoteOptions = updateVoteOptions;
+      window.closePopup = closePopup;
+      window.clearLocalData = clearLocalData;
     </script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
-</body>
+  </body>
 </html>
