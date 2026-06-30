@@ -346,6 +346,8 @@
 
       <div class="status-bar">
         <span class="disconnected" id="connectionStatus">⚠ Connexion...</span>
+        <span id="accountInfo" style="display: none"> 👤 <span id="accountLabel"></span> </span>
+        <span id="chainInfo"></span>
         <button
           class="secondary mini"
           id="clearDataBtn"
@@ -368,11 +370,12 @@
         </div>
         <button onclick="castVote()">🔒 Chiffrer et envoyer le vote</button>
         <div class="encryption-info">
-          <strong>Comment ça marche :</strong>
+          <strong>Processus :</strong>
           <ol style="margin-left: 1.5rem; margin-top: 0.5rem">
-            <li>Ton choix est chiffré sur ton appareil avant d'être envoyé</li>
-            <li>Le serveur additionne les votes chiffrés sans les lire</li>
-            <li>Les totaux ne sont révélés qu'à la clôture du scrutin</li>
+            <li>Le SDK FHE génère un ciphertext (euint32) localement</li>
+            <li>Une preuve (inputProof) est créée via le relayer mock</li>
+            <li>La transaction est envoyée via ethers.js au contrat</li>
+            <li>Le contrat additionne le vote chiffré sans le déchiffrer</li>
           </ol>
         </div>
       </div>
@@ -597,12 +600,17 @@
             throw new Error("ethers.js non chargé");
           }
           provider = new ethers.JsonRpcProvider(RPC_URL);
-          await provider.getNetwork();
-          log("✓ Connecté", "success");
+          const network = await provider.getNetwork();
+          chainId = Number(network.chainId);
+          log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
 
           signer = new ethers.Wallet(pk, provider);
           userAddress = await signer.getAddress();
           const balance = await provider.getBalance(userAddress);
+          log(
+            `Compte: ${userAddress.substring(0, 10)}...${userAddress.substring(38)} | ${ethers.formatEther(balance).substring(0, 8)} ETH`,
+            "info",
+          );
 
           // Avertissement solde
           if (balance === 0n) {
@@ -612,15 +620,21 @@
             );
           }
 
-          log("Préparation du module de chiffrement...", "info");
+          // Afficher l'identifiant dans la barre de statut
+          document.getElementById("accountLabel").textContent =
+            `${userAddress.substring(0, 6)}…${userAddress.substring(38)}`;
+          document.getElementById("accountInfo").style.display = "inline";
+
+          log("Initialisation mock FHE (handles déterministes)...", "info");
           instance = await createInstance();
-          log("✓ Module de chiffrement prêt", "success");
+          log("✓ Mock FHE SDK initialisé", "success");
 
           contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-          log("✓ Connecté au contrat de vote", "success");
+          log(`Contrat: ${CONTRACT_ADDRESS.substring(0, 12)}...`, "info");
 
-          status.textContent = "✓ Connecté";
+          status.textContent = "✓ Connecté (FHE mock local)";
           status.className = "connected";
+          document.getElementById("chainInfo").textContent = `Chain ${chainId}`;
 
           await refreshElections();
         } catch (e) {
@@ -633,18 +647,21 @@
 
       async function init() {
         const status = document.getElementById("connectionStatus");
+        // Test RPC léger d'abord (sans signer) pour vérifier la connectivité réseau
         try {
           if (typeof ethers === "undefined") {
             throw new Error("ethers.js non chargé");
           }
           provider = new ethers.JsonRpcProvider(RPC_URL);
-          await provider.getNetwork();
-          status.textContent = "✓ Connecté";
+          const network = await provider.getNetwork();
+          chainId = Number(network.chainId);
+          status.textContent = `✓ RPC joignable (chain ${chainId})`;
           status.className = "connected";
-          log("✓ Connecté", "success");
+          document.getElementById("chainInfo").textContent = `Chain ${chainId}`;
+          log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
         } catch (e) {
-          log(`❌ Serveur injoignable: ${e.message}`, "error");
-          status.textContent = `⚠ Serveur injoignable`;
+          log(`❌ RPC injoignable (${RPC_URL}): ${e.message}`, "error");
+          status.textContent = `⚠ RPC injoignable`;
           status.className = "disconnected";
           return;
         }
@@ -784,27 +801,32 @@
         }
         showPopup(
           "Création en cours…",
-          `Préparation de l'élection "${title}" avec ${options.length} options.`,
+          `Envoi de la transaction pour "${title}" avec ${options.length} options.`,
           "pending",
           { hideClose: true },
         );
         try {
           log(`Création election "${title}"...`);
           const tx = await contract.createElection(title, options);
-          await tx.wait();
+          const receipt = await tx.wait();
           const newId = await contract.electionCounter();
-          log(`✓ Election #${newId} créée`, "success");
+          log(`✓ Election #${newId} créée (block ${receipt.blockNumber})`, "success");
           document.getElementById("electionTitle").value = "";
           document.getElementById("electionOptions").value = "";
           const body = document.createElement("div");
-          body.innerHTML = `<p><strong>${escapeHtml(title)}</strong> a été créée avec ${options.length} options.</p>`;
+          body.innerHTML = `
+                    <p><strong>${title}</strong> a été créée avec succès.</p>
+                    <pre>ID      : #${newId}
+Block   : ${receipt.blockNumber}
+Options : ${options.join(", ")}
+Gas     : ${receipt.gasUsed.toString()}</pre>`;
           showPopup("✓ Élection créée", body, "success");
           await refreshElections();
         } catch (e) {
           const reason = e.reason || e.shortMessage || e.message || String(e);
           log(`❌ Erreur création: ${reason}`, "error");
           const body = document.createElement("div");
-          body.innerHTML = `<p>${escapeHtml(reason)}</p>`;
+          body.innerHTML = `<pre>${reason}</pre>`;
           showPopup("❌ Échec de la création", body, "error");
           if (e.stack) console.error(e);
         }
@@ -812,7 +834,7 @@
 
       async function castVote() {
         if (!signer || !contract || !instance) {
-          return showPopup("⚠ Connexion non prête", "Patiente quelques secondes puis réessaie.", "error");
+          return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
         }
         const electionId = document.getElementById("voteElectionId").value;
         const optionIndex = parseInt(document.getElementById("voteOption").value);
@@ -822,30 +844,37 @@
         if (!electionId) {
           return showPopup("❌ Aucune élection", "Choisis une élection dans la liste.", "error");
         }
-        showPopup("Chiffrement du vote…", "Chiffrement local de ton choix avant envoi.", "pending", {
-          hideClose: true,
-        });
+        showPopup(
+          "Chiffrement du vote…",
+          "Génération locale du ciphertext FHE + input proof via le relayer mock.",
+          "pending",
+          { hideClose: true },
+        );
         try {
-          log(`Chiffrement local du vote...`);
+          log(`Chiffrement local du vote (option ${optionIndex})...`);
 
           const input = instance.createEncryptedInput(CONTRACT_ADDRESS, userAddress);
           input.add32(optionIndex);
           const encrypted = await input.encrypt();
 
-          log("Envoi du vote chiffré...");
+          log(`Envoi du vote chiffré (handle=${encrypted.handles[0].substring(0, 18)}...)`);
           const tx = await contract.castVote(electionId, encrypted.handles[0], encrypted.inputProof);
-          await tx.wait();
-          log("✓ Vote enregistré", "success");
+          const receipt = await tx.wait();
+          log(`✓ Vote chiffré envoyé ! Block ${receipt.blockNumber}`, "success");
           const body = document.createElement("div");
           body.innerHTML = `
-                    <p>Ton vote pour <strong>${escapeHtml(optionLabel)}</strong> sur l'élection <strong>#${electionId}</strong> a bien été enregistré.</p>
+                    <p>Vote pour <strong>${optionLabel}</strong> sur l'élection <strong>#${electionId}</strong> envoyé.</p>
+                    <pre>Handle   : ${encrypted.handles[0].substring(0, 42)}…
+Block    : ${receipt.blockNumber}
+Gas      : ${receipt.gasUsed.toString()}
+Status   : confirmé on-chain</pre>
                     <p style="color:#4ade80;">🔒 Ton vote reste chiffré. Le total sera révélé à la clôture.</p>`;
           showPopup("✓ Vote enregistré", body, "success");
         } catch (e) {
           const reason = e.reason || e.shortMessage || e.message || String(e);
           log(`Erreur vote: ${reason}`, "error");
           const body = document.createElement("div");
-          body.innerHTML = `<p>${escapeHtml(reason)}</p>`;
+          body.innerHTML = `<pre>${reason}</pre>`;
           showPopup("❌ Échec du vote", body, "error");
           if (e.stack) console.error(e);
         }
@@ -853,22 +882,25 @@
 
       async function closeAndReadResults() {
         if (!signer || !contract || !instance) {
-          return showPopup("⚠ Connexion non prête", "Patiente quelques secondes puis réessaie.", "error");
+          return showPopup("⚠ Non initialisé", "Wallet, contrat ou SDK FHE manquants.", "error");
         }
         const electionId = parseInt(document.getElementById("resultElectionId").value);
         if (!electionId) {
           return showPopup("❌ ID manquant", "Saisis l'ID de l'élection à fermer.", "error");
         }
-        showPopup("Fermeture en cours…", `Révélation des résultats de l'élection #${electionId}.`, "pending", {
-          hideClose: true,
-        });
+        showPopup(
+          "Fermeture en cours…",
+          `Envoi de closeElection(#${electionId}) puis déchiffrement public des totaux.`,
+          "pending",
+          { hideClose: true },
+        );
         try {
           log(`Fermeture election ${electionId}...`);
           const tx = await contract.closeElection(electionId);
           await tx.wait();
           log(`✓ Election fermée`, "success");
 
-          log("Révélation des résultats...");
+          log("Déchiffrement public des résultats...");
           const [title, options, , voterCount] = await contract.getElection(electionId);
 
           const results = [];
@@ -879,6 +911,7 @@
               const value = decrypted[handle];
               const num = typeof value === "bigint" ? Number(value) : Number(value);
               results.push({ option: options[i], votes: num });
+              log(`  ${options[i]}: ${num} votes`, "info");
             } else {
               results.push({ option: options[i], votes: 0 });
             }
@@ -890,9 +923,10 @@
           // Popup résultats — version compacte (les chips détaillées sont dans la liste)
           const popupBody = document.createElement("div");
           popupBody.innerHTML = `
-                    <p>Résultats de l'élection <strong>#${electionId}</strong> :</p>
+                    <p><strong>Élection #${electionId}</strong> fermée et déchiffrée.</p>
                     ${renderResultCard(electionId, { title, options, results, voterCount: Number(voterCount) })}
-                    <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">${voterCount} votant${voterCount > 1 ? "s" : ""} au total.</p>`;
+                    <pre>Total votants : ${voterCount}</pre>
+                    <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">Le résultat reste visible à côté de la mention de l'élection.</p>`;
           showPopup("🏆 Résultats", popupBody, "success");
 
           await refreshElections();
@@ -900,7 +934,7 @@
           const reason = e.reason || e.shortMessage || e.message || String(e);
           log(`Erreur: ${reason}`, "error");
           const body = document.createElement("div");
-          body.innerHTML = `<p>${escapeHtml(reason)}</p>`;
+          body.innerHTML = `<pre>${reason}</pre>`;
           showPopup("❌ Échec", body, "error");
           if (e.stack) console.error(e);
         }
