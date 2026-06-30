@@ -84,6 +84,39 @@
             font-weight: bold;
             color: #c026d3;
         }
+        .election-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .results-inline {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-left: auto;
+        }
+        .results-inline .chip {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 0.15rem 0.6rem;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+        }
+        .results-inline .chip strong {
+            color: #c084fc;
+            margin-left: 0.25rem;
+        }
+        .results-inline .chip.winner {
+            background: #3b1d65;
+            border-color: #7c3aed;
+            color: #fff;
+        }
+        .results-inline .chip.winner strong {
+            color: #fbbf24;
+        }
         .status {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -283,8 +316,8 @@
     </div>
 
     <script type="module">
-        // v=4 : cache-buster pour forcer le navigateur à recharger après modif du mock
-        import { createInstance } from "./mock-fhevm.js?v=4";
+        // v=5 : cache-buster pour forcer le navigateur à recharger après modif du mock
+        import { createInstance } from "./mock-fhevm.js?v=5";
 
         const RPC_URL = "http://localhost:8545";
         const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
@@ -393,16 +426,19 @@
             localStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify(cache));
         }
         function renderResultCard(eid, payload) {
-            const { title, options, results, voterCount } = payload;
+            const { results } = payload;
             const maxVotes = Math.max(...results.map((r) => r.votes), 1);
             const winner = results.reduce((a, b) => (a.votes >= b.votes ? a : b), results[0]);
-            let rows = "";
-            for (const r of results) {
+            const chips = results.map((r) => {
                 const pct = ((r.votes / maxVotes) * 100).toFixed(0);
                 const isWinner = r === winner && r.votes > 0;
-                rows += `<div class="result-row"><span>${isWinner ? "🏆 " : ""}<strong>${r.option}</strong></span><span class="votes">${r.votes} (${pct}%)</span></div>`;
-            }
-            return `<div class="result" data-eid="${eid}"><h3 style="color:#fff; margin-bottom:0.75rem;">🏆 Résultats élection #${eid} — ${title}</h3>${rows}<p style="margin-top:1rem;color:#94a3b8;font-size:0.85rem;">Total : ${voterCount} votants</p></div>`;
+                return `<span class="chip ${isWinner ? "winner" : ""}" title="${pct}%">${isWinner ? "🏆 " : ""}${escapeHtml(r.option)} <strong>${r.votes}</strong></span>`;
+            }).join("");
+            return `<div class="results-inline">${chips}</div>`;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
         }
 
         async function refreshElections() {
@@ -426,18 +462,16 @@
                     const badge = isActive
                         ? '<span class="status active">Active</span>'
                         : '<span class="status closed">Fermée</span>';
+                    const cached = !isActive ? cache[String(i)] : null;
+                    const resultsHtml = cached ? renderResultCard(i, cached) : "";
                     list.innerHTML += `
                         <div class="election">
-                            <h3>#${i}: ${title} ${badge}</h3>
-                            <p class="options">${options.join(" • ")}</p>
-                            <p>Votants: ${voterCount}</p>
+                            <h3>#${i}: ${escapeHtml(title)} ${badge}</h3>
+                            <p class="options">${options.map(escapeHtml).join(" • ")}</p>
+                            <p class="election-meta">Votants: ${voterCount}${resultsHtml}</p>
                         </div>`;
                     if (isActive) {
-                        select.innerHTML += `<option value="${i}">#${i} - ${title}</option>`;
-                    }
-                    // Ré-affiche le résultat caché si déjà déchiffré
-                    if (!isActive && cache[String(i)]) {
-                        list.innerHTML += renderResultCard(i, cache[String(i)]);
+                        select.innerHTML += `<option value="${i}">#${i} - ${escapeHtml(title)}</option>`;
                     }
                 }
                 if (select.options.length > 0) updateVoteOptions();
@@ -594,12 +628,13 @@ Status   : confirmé on-chain</pre>
                 // Cache pour que le résultat reste visible après refresh / fermeture popup
                 saveResultToCache(electionId, { title, options, results, voterCount: Number(voterCount) });
 
-                // Popup résultats (réutilise renderResultCard pour éviter la duplication)
+                // Popup résultats — version compacte (les chips détaillées sont dans la liste)
                 const popupBody = document.createElement("div");
                 popupBody.innerHTML = `
                     <p><strong>Élection #${electionId}</strong> fermée et déchiffrée.</p>
-                    ${renderResultCard(electionId, { title, options, results, voterCount: Number(voterCount) }).replace(/^<div class="result"[^>]*>(<h3[^>]*>[^<]*<\/h3>)/, "<h3 style=\"color:#fff;margin-bottom:0.75rem\">📊 Résultats</h3>$1")}
-                    <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">Le résultat reste affiché dans la liste après fermeture.</p>`;
+                    ${renderResultCard(electionId, { title, options, results, voterCount: Number(voterCount) })}
+                    <pre>Total votants : ${voterCount}</pre>
+                    <p style="color:#94a3b8;font-size:0.85rem;margin-top:0.5rem">Le résultat reste visible à côté de la mention de l'élection.</p>`;
                 showPopup("🏆 Résultats", popupBody, "success");
 
                 await refreshElections();
