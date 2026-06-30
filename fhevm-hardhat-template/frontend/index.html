@@ -502,7 +502,6 @@
       // (reçue sur un slip papier de l'admin). La PK reste dans localStorage.
       const STORAGE_KEY = "cv_pk_v1";
       const STORAGE_ADDR_KEY = "cv_addr_v1";
-      const RESULTS_CACHE_KEY = "cv_results_v1";
 
       function loadStoredIdentity() {
         try {
@@ -523,39 +522,19 @@
       }
 
       function clearLocalData() {
-        const body = document.createElement("div");
-        body.innerHTML = `
-          <p>Cette action efface définitivement :</p>
-          <ul style="margin: 0.5rem 0 0.5rem 1.5rem;">
-            <li>Ta clé privée (localisée sur cet appareil)</li>
-            <li>Les résultats déchiffrés en cache</li>
-          </ul>
-          <p style="margin-top: 0.75rem;">Tu devras recoller une clé privée pour voter à nouveau.</p>
-        `;
-        showPopup("🧹 Effacer mes données locales ?", body, "info", { hideClose: true });
-        const closeBtn = document.getElementById("modalCloseBtn");
-        closeBtn.textContent = "Oui, effacer";
-        closeBtn.onclick = () => {
-          try {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(STORAGE_ADDR_KEY);
-            localStorage.removeItem(RESULTS_CACHE_KEY);
-            log("🧹 Données locales effacées", "info");
-          } catch (e) {
-            log(`❌ Erreur d'effacement: ${e.message}`, "error");
-            showPopup("❌ Erreur", `Impossible d'effacer : ${escapeHtml(e.message)}`, "error");
-            return;
-          }
-          const okBody = document.createElement("div");
-          okBody.innerHTML = `
-            <p>Ta clé privée et les résultats en cache ont été supprimés du localStorage.</p>
-            <p style="margin-top: 0.75rem; color: #94a3b8; font-size: 0.85rem;">
-              Recharge la page pour revenir à l'écran de bienvenue.
-            </p>`;
-          showPopup("✓ Données effacées", okBody, "info", { hideClose: true });
-          closeBtn.textContent = "Recharger la page";
-          closeBtn.onclick = () => window.location.reload();
-        };
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(STORAGE_ADDR_KEY);
+          localStorage.removeItem(RESULTS_CACHE_KEY);
+        } catch {}
+        log("🧹 Données locales effacées", "info");
+        showPopup(
+          "Données effacées",
+          "Ta clé privée et les résultats en cache ont été supprimés du localStorage. La page va se recharger.",
+          "info",
+          { closeLabel: "Recharger", hideClose: false },
+        );
+        setTimeout(() => window.location.reload(), 1500);
       }
 
       function showWelcomeModal() {
@@ -700,6 +679,7 @@
 
       // Cache des résultats déchiffrés (localStorage) pour qu'ils restent visibles
       // après fermeture de la popup ou rafraîchissement automatique.
+      const RESULTS_CACHE_KEY = "cv_results_v1";
       function loadResultsCache() {
         try {
           return JSON.parse(localStorage.getItem(RESULTS_CACHE_KEY) || "{}");
