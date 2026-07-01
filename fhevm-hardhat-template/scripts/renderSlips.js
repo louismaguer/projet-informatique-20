@@ -7,6 +7,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { buildQrSvg } = require("./qrcode");
 
 const OUT_FILE = path.join(__dirname, "printIdentities.html");
 const IDENTITIES_FILE = path.join(__dirname, ".identities.json");
@@ -19,36 +20,56 @@ function safeUrl(u) {
   );
 }
 
-function renderSlips(identities, publicUrl) {
+async function renderSlips(identities, publicUrl) {
   const generatedAt = new Date().toLocaleString();
-  const slipsHtml = identities
-    .map((id) => {
+  const slipsHtml = (await Promise.all(
+    identities.map(async (id) => {
       const isAdmin = id.idx === 0;
-      const slipClass = isAdmin ? "slip slip-admin" : "slip";
-      const headerNum = isAdmin ? `🔧 ADMINISTRATEUR #${id.idx}` : `Votant #${id.idx}`;
       const headerWarn = isAdmin ? "⚠ RÔLE ADMIN" : "⚠ CONFIDENTIEL";
       const footerText = isAdmin
         ? "SERT UNIQUEMENT à créer / fermer les élections. NE PAS UTILISER POUR VOTER."
         : "DÉMO LOCALE UNIQUEMENT — ne jamais financer sur mainnet/Sepolia";
-      const adminNote = isAdmin
-        ? `<div class="slip-admin-note">
-              <strong>Cette clé NE SERT PAS À VOTER.</strong>
-              Elle sert uniquement à :
-              <ul style="margin: 0.3rem 0 0 1rem; padding: 0;">
-                <li>Créer des élections</li>
-                <li>Fermer des élections (révéler les résultats)</li>
-              </ul>
-              Le contrat refuse les votes émis depuis cette adresse.
-              Distribuer ce slip <strong>uniquement à l'organisateur</strong>.
-            </div>`
+
+      // QR codes : URL publique + PK brute (paper wallet)
+      const qrUrl = publicUrl
+        ? await buildQrSvg(publicUrl, { size: 90, ecLevel: "M" })
         : "";
-      return `
-    <div class="${slipClass}">
+      const qrPk = await buildQrSvg(id.pk, { size: 110, ecLevel: "M" });
+      const urlLabel = publicUrl
+        ? `🌐 ${safeUrl(publicUrl)}`
+        : `<em>(URL publique non fournie)</em>`;
+
+      if (isAdmin) {
+        // === SLIP ADMIN : layout "double" (2 cellules = pleine largeur × plus grand) ===
+        const qrBlock = `
+          <div class="slip-qr">
+            <div class="slip-qr-cell">
+              <div class="slip-qr-img">${qrUrl}</div>
+              <div class="slip-qr-label">Scan → ouvrir la démo</div>
+              <div class="slip-qr-sublabel">${urlLabel}</div>
+            </div>
+            <div class="slip-qr-cell slip-qr-secret">
+              <div class="slip-qr-img">${qrPk}</div>
+              <div class="slip-qr-label">🔑 Clé privée admin</div>
+              <div class="slip-qr-sublabel">Scan pour importer (à garder secrète)</div>
+            </div>
+          </div>`;
+        return `
+    <div class="slip slip-admin slip-admin-double">
       <div class="slip-header">
-        <span class="slip-num">${headerNum}</span>
-        <span class="slip-warn">${headerWarn}</span>
+        <span class="slip-num">🔧 ADMINISTRATEUR #0</span>
+        <span class="slip-warn">⚠ RÔLE ADMIN</span>
       </div>
-      ${adminNote}
+      <div class="slip-admin-note">
+        <strong>Cette clé NE SERT PAS À VOTER.</strong>
+        Elle sert uniquement à :
+        <ul style="margin: 0.3rem 0 0 1rem; padding: 0;">
+          <li>Créer des élections</li>
+          <li>Fermer des élections (révéler les résultats)</li>
+        </ul>
+        Le contrat refuse les votes émis depuis cette adresse.
+        Distribuer ce slip <strong>uniquement à l'organisateur</strong>.
+      </div>
       <div class="slip-row">
         <span class="slip-label">Adresse :</span>
         <span class="slip-value mono">${id.address}</span>
@@ -57,19 +78,45 @@ function renderSlips(identities, publicUrl) {
         <span class="slip-label">Clé privée :</span>
         <span class="slip-value mono pk">${id.pk}</span>
       </div>
-      <div class="slip-urls">
-        ${publicUrl ? `<div class="slip-url-row">
-          <span class="slip-url-label">🌐 URL publique :</span>
-          <span class="slip-url-value mono">${safeUrl(publicUrl)}</span>
-        </div>` : `<div class="slip-url-row">
-          <span class="slip-url-label">🌐 URL publique :</span>
-          <span class="slip-url-value mono"><em>(non fournie — relance avec PUBLIC_URL=https://...)</em></span>
-        </div>`}
-      </div>
+      ${qrBlock}
       <div class="slip-footer">${footerText}</div>
     </div>`;
-    })
-    .join("\n");
+      }
+
+      // === SLIP VOTANT : layout détaillé actuel ===
+      const qrBlock = `
+        <div class="slip-qr">
+          <div class="slip-qr-cell">
+            <div class="slip-qr-img">${qrUrl}</div>
+            <div class="slip-qr-label">Scan → ouvrir la démo</div>
+            <div class="slip-qr-sublabel">${urlLabel}</div>
+          </div>
+          <div class="slip-qr-cell slip-qr-secret">
+            <div class="slip-qr-img">${qrPk}</div>
+            <div class="slip-qr-label">🔑 Clé privée</div>
+            <div class="slip-qr-sublabel">Scan pour importer (à garder secrète)</div>
+          </div>
+        </div>`;
+
+      return `
+    <div class="slip">
+      <div class="slip-header">
+        <span class="slip-num">Votant #${id.idx}</span>
+        <span class="slip-warn">${headerWarn}</span>
+      </div>
+      <div class="slip-row">
+        <span class="slip-label">Adresse :</span>
+        <span class="slip-value mono">${id.address}</span>
+      </div>
+      <div class="slip-row">
+        <span class="slip-label">Clé privée :</span>
+        <span class="slip-value mono pk">${id.pk}</span>
+      </div>
+      ${qrBlock}
+      <div class="slip-footer">${footerText}</div>
+    </div>`;
+    }))
+  ).join("\n");
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -126,6 +173,7 @@ function renderSlips(identities, publicUrl) {
       border-radius: 4px;
       padding: 0.5rem 0.75rem;
       page-break-inside: avoid;
+      break-inside: avoid;
       position: relative;
     }
     .slip-header {
@@ -194,6 +242,73 @@ function renderSlips(identities, publicUrl) {
     .slip-admin-note strong {
       color: #b45309;
     }
+    /* Slip admin "double" : occupe les 2 cellules de la grille (pleine largeur)
+       et a un contenu plus aéré, mais reste compact pour tenir sur 1 page A4. */
+    .slip-admin-double {
+      grid-column: 1 / -1;
+      padding: 0.5rem 0.7rem;
+      background: #fffbeb;
+      border: 2px solid #f59e0b;
+      border-style: solid;
+      border-radius: 4px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .slip-admin-double .slip-num {
+      font-size: 1rem;
+      color: #b45309;
+    }
+    .slip-admin-double .slip-warn {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+    }
+    .slip-admin-double .slip-admin-note {
+      background: #fef3c7;
+      border-left: 3px solid #f59e0b;
+      padding: 0.4rem 0.6rem;
+      margin: 0.3rem 0;
+      font-size: 0.78rem;
+      color: #78350f;
+      border-radius: 3px;
+      line-height: 1.35;
+    }
+    .slip-admin-double .slip-admin-note strong {
+      color: #b45309;
+      font-size: 0.85rem;
+    }
+    .slip-admin-double .slip-admin-note ul {
+      margin: 0.2rem 0 0 1rem !important;
+    }
+    .slip-admin-double .slip-row {
+      margin: 0.25rem 0;
+    }
+    .slip-admin-double .slip-label {
+      font-size: 0.7rem;
+    }
+    .slip-admin-double .slip-value {
+      font-size: 0.78rem;
+    }
+    .slip-admin-double .slip-qr {
+      gap: 1rem;
+      padding-top: 0.3rem;
+      margin-top: 0.4rem;
+    }
+    .slip-admin-double .slip-qr-cell svg {
+      width: 100px;
+      height: 100px;
+    }
+    .slip-admin-double .slip-qr-secret svg { width: 120px; height: 120px; }
+    .slip-admin-double .slip-qr-label {
+      font-size: 0.7rem;
+    }
+    .slip-admin-double .slip-qr-sublabel {
+      font-size: 0.65rem;
+      max-width: 160px;
+    }
+    .slip-admin-double .slip-footer {
+      font-size: 0.65rem;
+      margin-top: 0.3rem;
+    }
     .slip-urls {
       margin-top: 0.4rem;
       padding-top: 0.3rem;
@@ -215,12 +330,58 @@ function renderSlips(identities, publicUrl) {
       word-break: break-all;
       color: #1e40af;
     }
+    .slip-qr {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: space-around;
+      align-items: flex-start;
+      margin: 0.4rem 0 0.2rem;
+      padding-top: 0.3rem;
+      border-top: 1px dotted #ccc;
+    }
+    .slip-qr-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      max-width: 50%;
+    }
+    .slip-qr-cell svg {
+      display: block;
+      width: 90px;
+      height: 90px;
+    }
+    .slip-qr-secret {
+      padding: 0.2rem 0.3rem;
+      border: 1px solid #b91c1c;
+      border-radius: 3px;
+      background: #fef2f2;
+    }
+    .slip-qr-secret svg { width: 110px; height: 110px; }
+    .slip-qr-img { line-height: 0; }
+    .slip-qr-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: #444;
+      text-align: center;
+    }
+    .slip-qr-secret .slip-qr-label { color: #b91c1c; }
+    .slip-qr-sublabel {
+      font-size: 0.55rem;
+      color: #888;
+      word-break: break-all;
+      text-align: center;
+      max-width: 110px;
+    }
     @media print {
       body { background: #fff; padding: 0; }
       .controls, .meta { display: none; }
       .grid { grid-template-columns: repeat(2, 1fr); gap: 0.3cm; }
-      .slip { border-style: dashed; }
+      .slip { border-style: dashed; page-break-inside: avoid; break-inside: avoid; }
       .slip-admin { border-style: solid; }
+      .slip-admin-double { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
+      /* Évite qu'une coupure tombe au milieu d'un QR code */
+      .slip-qr-cell { page-break-inside: avoid; break-inside: avoid; }
     }
   </style>
 </head>
@@ -252,13 +413,13 @@ ${slipsHtml}
   return html;
 }
 
-function main() {
+async function main() {
   if (!fs.existsSync(IDENTITIES_FILE)) {
     console.error(`❌ ${IDENTITIES_FILE} introuvable. Lance d'abord generateIdentities.js`);
     process.exit(1);
   }
   const identities = JSON.parse(fs.readFileSync(IDENTITIES_FILE, "utf-8"));
-  const html = renderSlips(identities, PUBLIC_URL);
+  const html = await renderSlips(identities, PUBLIC_URL);
   fs.writeFileSync(OUT_FILE, html, "utf8");
   console.log(`✓ Slips régénérés : ${OUT_FILE}`);
   if (PUBLIC_URL) {
