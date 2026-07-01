@@ -7,6 +7,8 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 /// @title Confidential Voting - Vote Scrutin Confidentiel avec FHE
 /// @notice Système de vote où les bulletins sont chiffrés, mais le total est calculé on-chain
 contract ConfidentialVoting is ZamaEthereumConfig {
+    address public immutable admin;
+
     uint256 public electionCounter;
 
     struct Election {
@@ -26,12 +28,28 @@ contract ConfidentialVoting is ZamaEthereumConfig {
     event VoteCast(uint256 indexed electionId, address indexed voter);
     event ElectionClosed(uint256 indexed electionId);
 
-    /// @notice Crée une nouvelle election
-    /// @param title Titre de l'election
+    error OnlyAdmin();
+    error AdminCannotVote();
+
+    modifier onlyAdmin() {
+        if (msg.sender != admin) revert OnlyAdmin();
+        _;
+    }
+
+    /// @param _admin Adresse de l'administrateur (slip #0). Seule cette adresse peut
+    /// créer et fermer des élections. L'admin ne peut pas voter.
+    constructor(address _admin) {
+        require(_admin != address(0), "Invalid admin address");
+        admin = _admin;
+    }
+
+    /// @notice Crée une nouvelle élection (admin uniquement)
+    /// @param title Titre de l'élection
     /// @param options Liste des options (candidats)
-    /// @return id de l'election creee
+    /// @return id de l'élection créée
     function createElection(string calldata title, string[] calldata options)
         external
+        onlyAdmin
         returns (uint256)
     {
         require(bytes(title).length > 0, "CreateElection: title cannot be empty");
@@ -52,6 +70,9 @@ contract ConfidentialVoting is ZamaEthereumConfig {
             voterCount: 0
         });
 
+        // L'admin ne peut pas voter sur les élections qu'il organise
+        hasVoted[electionId][admin] = true;
+
         for (uint256 i = 0; i < options.length; i++) {
             euint32 zero = FHE.asEuint32(uint32(0));
             FHE.allowThis(zero);
@@ -62,8 +83,8 @@ contract ConfidentialVoting is ZamaEthereumConfig {
         return electionId;
     }
 
-    /// @notice Vote pour une election avec un vote chiffré
-    /// @param electionId ID de l'election
+    /// @notice Vote pour une élection avec un vote chiffré
+    /// @param electionId ID de l'élection
     /// @param encryptedOption Choix chiffré (0 à optionCount-1)
     /// @param inputProof Preuve pour vérifier le ciphertext
     function castVote(
@@ -71,6 +92,7 @@ contract ConfidentialVoting is ZamaEthereumConfig {
         externalEuint32 encryptedOption,
         bytes calldata inputProof
     ) external {
+        if (msg.sender == admin) revert AdminCannotVote();
         Election storage election = elections[electionId];
         require(election.id != 0, "Election does not exist");
         require(election.isActive, "Election is not active");
@@ -93,9 +115,9 @@ contract ConfidentialVoting is ZamaEthereumConfig {
         emit VoteCast(electionId, msg.sender);
     }
 
-    /// @notice Ferme une election et rend les resultats déchiffrables publiquement
-    /// @param electionId ID de l'election à fermer
-    function closeElection(uint256 electionId) external {
+    /// @notice Ferme une élection et rend les résultats déchiffrables publiquement
+    /// @param electionId ID de l'élection à fermer
+    function closeElection(uint256 electionId) external onlyAdmin {
         Election storage election = elections[electionId];
         require(election.id != 0, "Election does not exist");
         require(election.isActive, "Election already closed");
@@ -110,7 +132,7 @@ contract ConfidentialVoting is ZamaEthereumConfig {
         emit ElectionClosed(electionId);
     }
 
-    /// @notice Recupere les informations d'une election
+    /// @notice Récupère les informations d'une élection
     function getElection(uint256 electionId)
         external
         view
@@ -121,7 +143,7 @@ contract ConfidentialVoting is ZamaEthereumConfig {
         return (election.title, election.options, election.isActive, election.voterCount);
     }
 
-    /// @notice Recupere le total chiffré pour une option
+    /// @notice Récupère le total chiffré pour une option
     function getEncryptedTally(uint256 electionId, uint256 optionIndex)
         external
         view

@@ -20,6 +20,7 @@ describe("ConfidentialVoting - multi-appareils", function () {
   let contract: ConfidentialVoting;
   let contractAddress: string;
   let provider: ethers.JsonRpcProvider;
+  let admin: ethers.Signer;
 
   // Wallets arbitraires (comme ceux que génère scripts/generateIdentities.js)
   // Connectés à un provider pour pouvoir envoyer des tx
@@ -34,8 +35,9 @@ describe("ConfidentialVoting - multi-appareils", function () {
       this.skip();
       return;
     }
+    [admin] = await ethers.getSigners();
     const factory = (await ethers.getContractFactory("ConfidentialVoting")) as ConfidentialVoting__factory;
-    contract = (await factory.deploy()) as ConfidentialVoting;
+    contract = (await factory.deploy(await admin.getAddress())) as ConfidentialVoting;
     contractAddress = await contract.getAddress();
     provider = ethers.provider;
 
@@ -149,5 +151,65 @@ describe("ConfidentialVoting - multi-appareils", function () {
     for (const w of identities) {
       expect(w.privateKey).to.match(/^0x[0-9a-fA-F]{64}$/);
     }
+  });
+
+  it("admin() retourne l'adresse du déployeur", async function () {
+    const adminAddr = await contract.admin();
+    expect(adminAddr).to.eq(await admin.getAddress());
+  });
+
+  it("admin est immutable (pas de setter dans l'ABI)", async function () {
+    // L'interface du contrat ne doit exposer aucune fonction de transfert admin
+    const fragmentNames = contract.interface.fragments
+      .filter((f) => f.type === "function")
+      .map((f) => f.name);
+    expect(fragmentNames).to.not.include("transferAdmin");
+    expect(fragmentNames).to.not.include("setAdmin");
+    expect(fragmentNames).to.not.include("renounceAdmin");
+  });
+
+  it("un non-admin ne peut PAS créer d'élection", async function () {
+    const contractAsVoter = contract.connect(wallet0) as ConfidentialVoting;
+    await expect(contractAsVoter.createElection("Pirate", ["A", "B"])).to.be.revertedWithCustomError(
+      contract,
+      "OnlyAdmin",
+    );
+  });
+
+  it("un non-admin ne peut PAS fermer d'élection", async function () {
+    await (await contract.createElection("Légitime", ["A", "B"])).wait();
+    const contractAsVoter = contract.connect(wallet0) as ConfidentialVoting;
+    await expect(contractAsVoter.closeElection(1)).to.be.revertedWithCustomError(contract, "OnlyAdmin");
+  });
+
+  it("l'admin NE PEUT PAS voter (AdminCannotVote)", async function () {
+    await (await contract.createElection("Test admin vote", ["A", "B"])).wait();
+    const enc = await encryptVote(0, await admin.getAddress());
+    await expect(contract.castVote(1, enc.handles[0], enc.inputProof)).to.be.revertedWithCustomError(
+      contract,
+      "AdminCannotVote",
+    );
+  });
+
+  it("hasVoted[admin] est true après création d'élection (impossible de tricher)", async function () {
+    await (await contract.createElection("Test lock admin", ["A", "B"])).wait();
+    // Même si on appelait castVote, hasVoted[admin] est déjà true
+    const hasVotedAdmin = await contract.hasVoted(1, await admin.getAddress());
+    expect(hasVotedAdmin).to.eq(true);
+  });
+
+  it("voterCount ne s'incrémente PAS quand l'admin 'vote' (revert)", async function () {
+    await (await contract.createElection("Test counter", ["A", "B"])).wait();
+    const enc = await encryptVote(0, await admin.getAddress());
+    try {
+      await contract.castVote(1, enc.handles[0], enc.inputProof);
+    } catch {}
+    const [, , , voterCount] = await contract.getElection(1);
+    expect(voterCount).to.eq(0n);
+  });
+
+  it("constructeur refuse address(0)", async function () {
+    const factory = (await ethers.getContractFactory("ConfidentialVoting")) as ConfidentialVoting__factory;
+    await expect(factory.deploy(ethers.ZeroAddress)).to.be.revertedWith("Invalid admin address");
   });
 });

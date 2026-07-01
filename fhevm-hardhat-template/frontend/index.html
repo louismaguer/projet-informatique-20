@@ -335,6 +335,58 @@
           transform: rotate(360deg);
         }
       }
+      .admin-banner {
+        background: linear-gradient(135deg, #3b1d65 0%, #7c3aed 100%);
+        border: 1px solid #a78bfa;
+        color: #fbbf24;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+      }
+      .admin-banner strong {
+        color: #fff;
+      }
+      .voter-banner {
+        background: #1e293b;
+        border-left: 3px solid #60a5fa;
+        color: #cbd5e1;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
+      }
+      .voter-banner strong {
+        color: #93c5fd;
+      }
+      .role-badge {
+        display: inline-block;
+        background: #7c3aed;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+        letter-spacing: 0.05em;
+      }
+      .admin-cannot-vote-note {
+        background: #451a03;
+        border-left: 3px solid #f59e0b;
+        color: #fbbf24;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
+      }
+      .admin-cannot-vote-note code {
+        background: #1a1a1a;
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+        font-size: 0.8rem;
+      }
     </style>
   </head>
   <body>
@@ -354,14 +406,26 @@
           onclick="window.clearLocalData()"
           title="Effacer ma clé privée du localStorage"
         >
-          🧹 Effacer mes données
+          🚪 Se déconnecter
         </button>
+      </div>
+
+      <div id="adminBanner" class="admin-banner" style="display: none">
+        🔧 <strong>Vous êtes administrateur.</strong> Vous pouvez créer et fermer des
+        élections, mais pas voter (le contrat refuse le vote depuis cette adresse).
+      </div>
+      <div id="voterBanner" class="voter-banner" style="display: none">
+        🗳 Vous êtes votant.
       </div>
 
       <div class="card">
         <h2>🔒 Voter (Chiffrement FHE réel)</h2>
+        <div id="adminCannotVoteNote" class="admin-cannot-vote-note" style="display: none">
+          ⚠ Vous êtes l'administrateur. Le contrat refusera vos votes (revert
+          <code>AdminCannotVote</code>).
+        </div>
         <div class="form-group">
-          <label>Election</label>
+          <label>Élection</label>
           <select id="voteElectionId" onchange="updateVoteOptions()"></select>
         </div>
         <div class="form-group">
@@ -380,32 +444,34 @@
         </div>
       </div>
 
-      <div class="card">
-        <h2>📋 Créer une election</h2>
-        <div class="form-group">
-          <label>Titre</label>
-          <input type="text" id="electionTitle" placeholder="ex: Référendum local" />
+      <div id="adminPanel" style="display: none">
+        <div class="card">
+          <h2>📋 Créer une élection <span class="role-badge">ADMIN</span></h2>
+          <div class="form-group">
+            <label>Titre</label>
+            <input type="text" id="electionTitle" placeholder="ex : Référendum local" />
+          </div>
+          <div class="form-group">
+            <label>Options (séparées par virgules)</label>
+            <input type="text" id="electionOptions" placeholder="ex : Alice, Bob, Charlie" />
+          </div>
+          <button onclick="createElection()">Créer l'élection</button>
+          <button class="secondary" onclick="refreshElections()">🔄 Rafraîchir</button>
         </div>
-        <div class="form-group">
-          <label>Options (séparées par virgules)</label>
-          <input type="text" id="electionOptions" placeholder="ex: Alice, Bob, Charlie" />
+
+        <div class="card">
+          <h2>🔓 Fermer élection & révéler <span class="role-badge">ADMIN</span></h2>
+          <div class="form-group">
+            <label>ID Élection</label>
+            <input type="number" id="resultElectionId" placeholder="ex : 1" />
+          </div>
+          <button onclick="closeAndReadResults()">🔓 Fermer & révéler résultats</button>
         </div>
-        <button onclick="createElection()">Créer l'élection</button>
-        <button class="secondary" onclick="refreshElections()">🔄 Rafraîchir</button>
       </div>
 
       <div class="card">
-        <h2>📊 Elections et Résultats</h2>
+        <h2>📊 Élections et Résultats</h2>
         <div id="electionsList">Chargement...</div>
-      </div>
-
-      <div class="card">
-        <h2>🔓 Fermer election & révéler</h2>
-        <div class="form-group">
-          <label>ID Election</label>
-          <input type="number" id="resultElectionId" placeholder="ex: 1" />
-        </div>
-        <button onclick="closeAndReadResults()">🔓 Fermer & révéler résultats</button>
       </div>
 
       <div id="logs"></div>
@@ -444,8 +510,16 @@
 
       const HOST = window.location.hostname || "localhost";
       const PROTO = window.location.protocol || "http:";
-      const RPC_URL = new URL(window.location.href).searchParams.get("rpc") || `${PROTO}//${HOST}:8545`;
-      const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+      // RPC via le reverse proxy intégré au serveur frontend (un seul port exposé).
+      // Pour un test direct (sans proxy), override par ?rpc=http://X.Y.Z.W:8545.
+      const RPC_URL =
+        new URL(window.location.href).searchParams.get("rpc") ||
+        new URL("/api/rpc", window.location.origin).href;
+      // L'adresse du contrat est fournie dynamiquement par /api/contract (cf. start.sh
+      // qui déploie le contrat après avoir lu ADMIN_ADDRESS). Cela évite de hardcoder
+      // une adresse qui change si on supprime les artefacts.
+      let CONTRACT_ADDRESS = null;
+      let EXPECTED_ADMIN = null;
 
       let instance;
       let contract;
@@ -453,6 +527,7 @@
       let signer;
       let userAddress;
       let chainId;
+      let isAdmin = false;
 
       const ABI = [
         "function createElection(string title, string[] options) returns (uint256)",
@@ -461,7 +536,27 @@
         "function getElection(uint256 electionId) view returns (string title, string[] options, bool isActive, uint256 voterCount)",
         "function getEncryptedTally(uint256 electionId, uint256 optionIndex) view returns (bytes32)",
         "function electionCounter() view returns (uint256)",
+        "function admin() view returns (address)",
       ];
+
+      function setRoleUI(isAdminUser) {
+        isAdmin = isAdminUser;
+        const adminPanel = document.getElementById("adminPanel");
+        const adminBanner = document.getElementById("adminBanner");
+        const voterBanner = document.getElementById("voterBanner");
+        const adminVoteNote = document.getElementById("adminCannotVoteNote");
+        if (!adminPanel) return;
+        adminPanel.style.display = isAdminUser ? "" : "none";
+        if (adminBanner) adminBanner.style.display = isAdminUser ? "" : "none";
+        if (voterBanner) voterBanner.style.display = isAdminUser ? "none" : "";
+        if (adminVoteNote) adminVoteNote.style.display = isAdminUser ? "" : "none";
+        log(
+          isAdminUser
+            ? "🔧 Rôle détecté : ADMINISTRATEUR (créer/fermer autorisé, vote bloqué)"
+            : "🗳 Rôle détecté : VOTANT (vote autorisé, créer/fermer bloqué)",
+          "info",
+        );
+      }
 
       function log(msg, type = "info") {
         const logs = document.getElementById("logs");
@@ -517,7 +612,7 @@
           localStorage.setItem(STORAGE_KEY, pk);
           localStorage.setItem(STORAGE_ADDR_KEY, addr);
         } catch (e) {
-          log(`⚠ Impossible de mémoriser la PK: ${e.message}`, "warning");
+          log(`⚠ Impossible de mémoriser la PK : ${e.message}`, "warning");
         }
       }
 
@@ -541,7 +636,11 @@
         const body = document.createElement("div");
         body.innerHTML = `
                 <p>Bienvenue ! Cette démo de vote confidentiel tourne sur un réseau local.</p>
-                <p><strong>Pour voter, colle la clé privée</strong> que l'admin t'a remise sur un slip papier.</p>
+                <p><strong>Pour voter, colle la clé privée</strong> que l'admin t'a remise.</p>
+                <p style="font-size:0.8rem;color:#888;margin-top:0.25rem;">
+                    🔧 <strong>Si tu es l'organisateur</strong>, utilise le <strong>slip #0</strong>
+                    (marqué ADMINISTRATEUR). Tu pourras créer et fermer les élections, mais pas voter.
+                </p>
                 <div style="background:#1e293b;border-left:3px solid #f59e0b;padding:0.75rem;border-radius:4px;margin:0.75rem 0;font-size:0.85rem;color:#fbbf24;">
                     ⚠️ <strong>Avertissement</strong> : ta clé privée reste dans <em>ton</em> appareil
                     (localStorage). Elle n'est jamais envoyée au serveur.
@@ -554,7 +653,7 @@
                 </div>
                 <p id="welcomeError" style="color:#fca5a5;font-size:0.85rem;display:none;margin-top:0.5rem;"></p>
                 <p style="font-size:0.8rem;color:#888;margin-top:0.75rem;">
-                    💡 Une seule clé par appareil. Si tu changes d'avis, clique « 🧹 Effacer mes données ».
+                    💡 Une seule clé par utilisateur. Si tu changes d'avis, clique « 🚪 Se déconnecter ».
                 </p>`;
         showPopup("🔑 Identifie-toi pour voter", body, "info");
         // Override le bouton "Fermer" en "Valider"
@@ -604,13 +703,13 @@
           provider = new ethers.JsonRpcProvider(RPC_URL);
           const network = await provider.getNetwork();
           chainId = Number(network.chainId);
-          log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
+          log(`✓ Connecté au RPC : ${RPC_URL} (chain ${chainId})`, "success");
 
           signer = new ethers.Wallet(pk, provider);
           userAddress = await signer.getAddress();
           const balance = await provider.getBalance(userAddress);
           log(
-            `Compte: ${userAddress.substring(0, 10)}...${userAddress.substring(38)} | ${ethers.formatEther(balance).substring(0, 8)} ETH`,
+            `Compte : ${userAddress.substring(0, 10)}...${userAddress.substring(38)} | ${ethers.formatEther(balance).substring(0, 8)} ETH`,
             "info",
           );
 
@@ -631,8 +730,37 @@
           instance = await createInstance();
           log("✓ Mock FHE SDK initialisé", "success");
 
+          // Récupère l'adresse du contrat déployé via l'API
+          try {
+            const resp = await fetch("/api/contract");
+            const info = await resp.json();
+            if (!info.address) {
+              throw new Error(info.error || "Adresse du contrat indisponible");
+            }
+            CONTRACT_ADDRESS = info.address;
+            EXPECTED_ADMIN = info.admin || null;
+            log(`✓ Contrat déployé : ${CONTRACT_ADDRESS}`, "success");
+            if (EXPECTED_ADMIN) log(`✓ Admin attendu : ${EXPECTED_ADMIN}`, "info");
+          } catch (e) {
+            log(`❌ Impossible de récupérer l'adresse du contrat : ${e.message}`, "error");
+            return;
+          }
+
           contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-          log(`Contrat: ${CONTRACT_ADDRESS.substring(0, 12)}...`, "info");
+          log(`Contrat : ${CONTRACT_ADDRESS.substring(0, 12)}...`, "info");
+
+          // Détection du rôle admin
+          try {
+            const adminAddr = (await contract.admin()).toLowerCase();
+            const userAddr = userAddress.toLowerCase();
+            setRoleUI(adminAddr === userAddr);
+            if (adminAddr === userAddr) {
+              log(`Admin : ${adminAddr}`, "info");
+            }
+          } catch (e) {
+            log(`⚠ Impossible de lire admin() : ${e.message}`, "warning");
+            setRoleUI(false);
+          }
 
           status.textContent = "✓ Connecté (FHE mock local)";
           status.className = "connected";
@@ -640,7 +768,7 @@
 
           await refreshElections();
         } catch (e) {
-          log(`❌ Erreur connexion: ${e.message}`, "error");
+          log(`❌ Erreur connexion : ${e.message}`, "error");
           status.textContent = "⚠ Erreur";
           status.className = "disconnected";
           if (e.stack) console.error(e.stack);
@@ -660,9 +788,9 @@
           status.textContent = `✓ RPC joignable (chain ${chainId})`;
           status.className = "connected";
           document.getElementById("chainInfo").textContent = `Chain ${chainId}`;
-          log(`✓ Connecté au RPC: ${RPC_URL} (chain ${chainId})`, "success");
+          log(`✓ Connecté au RPC : ${RPC_URL} (chain ${chainId})`, "success");
         } catch (e) {
-          log(`❌ RPC injoignable (${RPC_URL}): ${e.message}`, "error");
+          log(`❌ RPC injoignable (${RPC_URL}) : ${e.message}`, "error");
           status.textContent = `⚠ RPC injoignable`;
           status.className = "disconnected";
           return;
@@ -740,7 +868,7 @@
                         <div class="election">
                             <h3>#${i}: ${escapeHtml(title)} ${badge}</h3>
                             <p class="options">${options.map(escapeHtml).join(" • ")}</p>
-                            <p class="election-meta">Votants: ${voterCount}${resultsHtml}</p>
+                            <p class="election-meta">Votants : ${voterCount}${resultsHtml}</p>
                         </div>`;
             if (isActive) {
               select.innerHTML += `<option value="${i}">#${i} - ${escapeHtml(title)}</option>`;
@@ -748,7 +876,7 @@
           }
           if (select.options.length > 0) updateVoteOptions();
         } catch (e) {
-          log(`Erreur refresh: ${e.message}`, "error");
+          log(`Erreur refresh : ${e.message}`, "error");
         }
       }
 
@@ -764,7 +892,7 @@
             select.innerHTML += `<option value="${i}">${opt}</option>`;
           });
         } catch (e) {
-          log(`Erreur: ${e.message}`, "error");
+          log(`Erreur : ${e.message}`, "error");
         }
       }
 
@@ -783,7 +911,7 @@
           .filter(Boolean);
         if (!title) {
           showPopup("❌ Titre manquant", "Le titre de l'élection est obligatoire.", "error");
-          return log("❌ Erreur: le titre est vide", "error");
+          return log("❌ Erreur : le titre est vide", "error");
         }
         if (options.length < 2) {
           showPopup(
@@ -808,11 +936,11 @@
           { hideClose: true },
         );
         try {
-          log(`Création election "${title}"...`);
+          log(`Création élection "${title}"...`);
           const tx = await contract.createElection(title, options);
           const receipt = await tx.wait();
           const newId = await contract.electionCounter();
-          log(`✓ Election #${newId} créée (block ${receipt.blockNumber})`, "success");
+          log(`✓ Élection #${newId} créée (block ${receipt.blockNumber})`, "success");
           document.getElementById("electionTitle").value = "";
           document.getElementById("electionOptions").value = "";
           const body = document.createElement("div");
@@ -826,7 +954,7 @@ Gas     : ${receipt.gasUsed.toString()}</pre>`;
           await refreshElections();
         } catch (e) {
           const reason = e.reason || e.shortMessage || e.message || String(e);
-          log(`❌ Erreur création: ${reason}`, "error");
+          log(`❌ Erreur création : ${reason}`, "error");
           const body = document.createElement("div");
           body.innerHTML = `<pre>${reason}</pre>`;
           showPopup("❌ Échec de la création", body, "error");
@@ -874,7 +1002,7 @@ Status   : confirmé on-chain</pre>
           showPopup("✓ Vote enregistré", body, "success");
         } catch (e) {
           const reason = e.reason || e.shortMessage || e.message || String(e);
-          log(`Erreur vote: ${reason}`, "error");
+          log(`Erreur vote : ${reason}`, "error");
           const body = document.createElement("div");
           body.innerHTML = `<pre>${reason}</pre>`;
           showPopup("❌ Échec du vote", body, "error");
@@ -897,10 +1025,10 @@ Status   : confirmé on-chain</pre>
           { hideClose: true },
         );
         try {
-          log(`Fermeture election ${electionId}...`);
+          log(`Fermeture élection ${electionId}...`);
           const tx = await contract.closeElection(electionId);
           await tx.wait();
-          log(`✓ Election fermée`, "success");
+          log(`✓ Élection fermée`, "success");
 
           log("Déchiffrement public des résultats...");
           const [title, options, , voterCount] = await contract.getElection(electionId);
@@ -913,7 +1041,7 @@ Status   : confirmé on-chain</pre>
               const value = decrypted[handle];
               const num = typeof value === "bigint" ? Number(value) : Number(value);
               results.push({ option: options[i], votes: num });
-              log(`  ${options[i]}: ${num} votes`, "info");
+              log(`  ${options[i]} : ${num} votes`, "info");
             } else {
               results.push({ option: options[i], votes: 0 });
             }
@@ -933,7 +1061,7 @@ Status   : confirmé on-chain</pre>
           await refreshElections();
         } catch (e) {
           const reason = e.reason || e.shortMessage || e.message || String(e);
-          log(`Erreur: ${reason}`, "error");
+          log(`Erreur : ${reason}`, "error");
           const body = document.createElement("div");
           body.innerHTML = `<pre>${reason}</pre>`;
           showPopup("❌ Échec", body, "error");

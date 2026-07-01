@@ -19,8 +19,9 @@ type Signers = {
 };
 
 async function deployFixture() {
+  const [deployer] = await ethers.getSigners();
   const factory = (await ethers.getContractFactory("ConfidentialVoting")) as ConfidentialVoting__factory;
-  const contract = (await factory.deploy()) as ConfidentialVoting;
+  const contract = (await factory.deploy(await deployer.getAddress())) as ConfidentialVoting;
   const contractAddress = await contract.getAddress();
 
   return { contract, contractAddress };

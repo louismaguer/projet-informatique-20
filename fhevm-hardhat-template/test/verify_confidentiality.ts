@@ -13,8 +13,9 @@ type Signers = {
 };
 
 async function deployFixture() {
+  const [deployer] = await ethers.getSigners();
   const factory = (await ethers.getContractFactory("ConfidentialVoting")) as ConfidentialVoting__factory;
-  const contract = (await factory.deploy()) as ConfidentialVoting;
+  const contract = (await factory.deploy(await deployer.getAddress())) as ConfidentialVoting;
   const contractAddress = await contract.getAddress();
   return { contract, contractAddress };
 }
@@ -139,8 +140,8 @@ describe("ConfidentialVoting — Confidentiality Audit", function () {
     expect(tallyBefore).to.not.eq(ethers.ZeroHash);
 
     // Voter 0 cast pour option 0
-    const enc = await encryptVote(freshAddr, 0, signers.deployer);
-    await (await freshC.connect(signers.deployer).castVote(1, enc.handles[0], enc.inputProof)).wait();
+    const enc = await encryptVote(freshAddr, 0, signers.voters[0]);
+    await (await freshC.connect(signers.voters[0]).castVote(1, enc.handles[0], enc.inputProof)).wait();
     const tallyAfter = await freshC.getEncryptedTally(1, 0);
 
     // Le handle a change : le contrat a bien effectue FHE.add(ciphertext, +1).

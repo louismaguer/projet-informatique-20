@@ -1,0 +1,28 @@
+[Unit]
+Description=FHEVM Vote - Hardhat node (in-memory EVM with FHE mock)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fhevm
+WorkingDirectory=/opt/fhevm-vote/fhevm-hardhat-template
+ExecStart=/usr/bin/npx hardhat node --network hardhat --hostname 127.0.0.1
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Permet à long-running de tenir (pas de restart inopiné)
+TimeoutStopSec=30
+# Limite la mémoire (Hardhat peut monter à 1-2 GB avec beaucoup d'élections)
+MemoryMax=2G
+MemoryHigh=1500M
+
+# Sécurité
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

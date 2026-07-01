@@ -75,16 +75,15 @@ function randomBytes32() {
   return arr;
 }
 
-// URL du noeud Hardhat : déduite de l'origine de la page pour fonctionner
-// depuis n'importe quel appareil du LAN (pas seulement localhost).
-// En développement, on peut forcer via ?rpc=http://X.Y.Z.W:8545 dans l'URL.
+// URL du noeud Hardhat : passe par le reverse proxy intégré au serveur frontend
+// (/api/rpc). Cela permet d'utiliser la même URL depuis le LAN ou depuis un
+// tunnel Cloudflare (un seul port exposé : 8080).
+// Override possible via ?rpc=http://X.Y.Z.W:8545 dans l'URL.
 function getRpcUrl() {
-  if (typeof window === "undefined") return "http://localhost:8545";
+  if (typeof window === "undefined") return "http://localhost:8080/api/rpc";
   const override = new URL(window.location.href).searchParams.get("rpc");
   if (override) return override;
-  const host = window.location.hostname || "localhost";
-  const proto = window.location.protocol || "http:";
-  return `${proto}//${host}:8545`;
+  return new URL("/api/rpc", window.location.origin).href;
 }
 
 // --- ciphertext packing : keccak256( concat(fheType || value || rand32) per input ) ---
