@@ -65,10 +65,18 @@ For detailed instructions see:
    npx hardhat test --network sepolia
    ```
 
-## 🗳 Vote multi-appareils (LAN non fiable)
+## 🗳 Vote multi-appareils
 
 Le frontend n'embarque **aucune clé privée**. Chaque votant utilise sa propre identité, reçue sur un slip papier imprimé
-par l'admin. Convient pour une démo en atelier sur un LAN non chiffré.
+par l'admin.
+
+**Surface d'exposition** (par défaut avec `./start.sh`) :
+- Tourne sur **ta machine** (localhost :8080 / :8081 / :8545)
+- **Exposé à internet** via un tunnel Cloudflare `*.trycloudflare.com` (URL affichée par `./start.sh`)
+- Également accessible depuis ton LAN à `http://<IP-locale>:8080`
+
+Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi) de voter. Sans lui, les votants
+doivent être sur le même LAN que ta machine.
 
 > ## ⚠️ AVERTISSEMENT CRITIQUE — wallets de démo
 >
@@ -91,11 +99,14 @@ npx hardhat run scripts/generateIdentities.js --network localhost
 
 1. Ouvre `scripts/printIdentities.html` dans un navigateur → clique **Imprimer** → coupe les 20 slips.
 2. **Supprime le fichier** après impression (`rm scripts/printIdentities.html`).
-3. Note l'IP LAN de la machine Hardhat (`ifconfig | grep inet`).
+3. Note l'URL publique affichée par `./start.sh` (`https://xxx.trycloudflare.com`) — c'est ce que tu communiques
+   aux votants. Sinon, pour un LAN privé uniquement, récupère l'IP locale (`ifconfig | grep inet`) et
+   utilise `http://<IP-locale>:8080`.
 
 ### Côté votant (un par appareil)
 
-1. Sur l'appareil (téléphone, laptop, tablette), ouvre `http://<IP-serveur>:8080`.
+1. Sur l'appareil (téléphone, laptop, tablette), ouvre l'URL publique `https://xxx.trycloudflare.com` (ou
+   `http://<IP-locale>:8080` si tu n'as pas activé le tunnel).
 2. Une modale demande de coller la clé privée du slip → bouton **Valider**.
 3. La PK reste dans le `localStorage` de l'appareil uniquement (jamais envoyée au serveur).
 4. Vote normalement. Bouton **🧹 Effacer mes données** pour nettoyer à la fin.
@@ -124,7 +135,12 @@ Couvre : 2 wallets arbitraires, double-vote, 10 voters en parallèle, sanity che
 | Choix de chaque votant (chiffrement FHE local avant envoi)     | Authentification du votant (n'importe qui avec un slip peut voter)                      |
 | Vote individuel invisible jusqu'à la clôture                   | Risque de regard par-dessus l'épaule quand la PK est collée                             |
 | Ta clé ne quitte jamais ton appareil                           | `localStorage` non chiffré au repos sur ton appareil                                    |
-| Réseau : transport HTTP en clair, mais ciphertext FHE = opaque | Attaque physique sur l'appareil entre le moment où tu colles la PK et celui où tu votes |
+| Réseau : HTTPS via tunnel Cloudflare, mais ciphertext FHE = opaque | En local (LAN) le transport est HTTP en clair ; sans tunnel, un sniffer sur le LAN peut observer les requêtes RPC |
+| URL tunnel sans auth → quiconque la devine peut voter          | Attaque physique sur l'appareil entre le moment où tu colles la PK et celui où tu votes |
+
+> **Important** : par défaut, `./start.sh` expose le service à internet via un tunnel Cloudflare. Toute
+> personne qui obtient l'URL `trycloudflare.com` peut atteindre ton noeud Hardhat. Pour une démo 100%
+> locale, tue le tunnel (`pkill -f cloudflared`) et utilise uniquement l'IP LAN.
 
 ## 📁 Project Structure
 

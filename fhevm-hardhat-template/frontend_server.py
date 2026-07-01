@@ -9,6 +9,10 @@ Endpoint /api/contract -> {address, admin} depuis deployments/localhost/Confiden
 
 Le reverse proxy permet de n'exposer qu'un seul port (8080) — utile pour un
 tunnel Cloudflare ou un hébergement statique.
+
+Surface d'exposition par défaut : localhost + LAN + internet (via tunnel).
+Les ports 8545 et 8081 ne sont PAS proxifiés publiquement ; seul 8080 l'est,
+et il relaie les appels RPC/relayer vers les ports internes de la machine.
 """
 import http.server
 import socketserver

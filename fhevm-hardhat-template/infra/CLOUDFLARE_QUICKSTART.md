@@ -1,5 +1,13 @@
 # 🚀 Partage rapide avec Cloudflare Tunnel (1h de setup)
 
+> **Ce que fait ce tunnel** : il expose le port 8080 (frontend) de **ta machine** à internet via une URL
+> `*.trycloudflare.com` (ou ton domaine custom si tu l'as configuré). Les services Hardhat (8545) et relayer
+> (8081) restent sur ta machine — ils ne sont **pas** exposés publiquement ; seul le port 8080 l'est, et il
+> proxie vers les autres via le reverse proxy intégré.
+>
+> ⚠️ Tant que le tunnel tourne, **n'importe qui dans le monde** ayant l'URL peut atteindre ton noeud Hardhat
+> et interagir avec le contrat déployé. Ne le laisse pas tourner en dehors d'une démo.
+
 ## Pour les testeurs
 
 **URL** : https://vote.tondomaine.xyz (à remplacer par ton hostname)
