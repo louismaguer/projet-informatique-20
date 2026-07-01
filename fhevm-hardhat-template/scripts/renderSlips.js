@@ -1,109 +1,25 @@
-// scripts/generateIdentities.js
-// Génère COUNT wallets aléatoires, les crédite de ETH_PER_ACCOUNT ETH chacun via
-// hardhat_setBalance, et écrit scripts/printIdentities.html (slips papier à
-// imprimer et découper).
-//
-// ⚠ Le fichier HTML produit contient les clés privées en clair.
-//    À supprimer après impression, ou à générer hors du dépôt (ex: /tmp/).
-//
-// Slip #0 = ADMINISTRATEUR : adresse écrite dans scripts/.admin_addr pour
-// injection dans le constructeur du contrat. Le contrat refuse tout vote depuis
-// cette adresse.
-//
-// Usage:
-//   npx hardhat run scripts/generateIdentities.js --network localhost
-//
-// Personnalisation:
-//   COUNT=10 ETH_PER_ACCOUNT=1 npx hardhat run scripts/generateIdentities.js --network localhost
-//   PUBLIC_URL=https://xxx.trycloudflare.com npx hardhat run scripts/generateIdentities.js --network localhost
+// scripts/renderSlips.js
+// Régénère le HTML des slips (scripts/printIdentities.html) à partir des identités
+// déjà sauvegardées dans scripts/.identities.json, en y intégrant l'URL publique
+// (Cloudflare tunnel) fournie via PUBLIC_URL.
+// Utilisé par start.sh pour mettre à jour l'URL sur les slips SANS changer les clés
+// (sinon le contrat déployé avec l'ancienne admin ne correspondrait plus).
 
-const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
-const COUNT = parseInt(process.env.COUNT || "20", 10);
-const ETH_PER_ACCOUNT = process.env.ETH_PER_ACCOUNT || "100";
 const OUT_FILE = path.join(__dirname, "printIdentities.html");
-const ADMIN_FILE = path.join(__dirname, ".admin_addr");
-const ADMIN_PK_FILE = path.join(__dirname, ".admin_pk");
 const IDENTITIES_FILE = path.join(__dirname, ".identities.json");
 const PUBLIC_URL = process.env.PUBLIC_URL || "";
 
-// QR code minimaliste inline (SVG). Pas de dépendance npm.
-// Source : encodage simple d'une string en grille 25x25 (Version 2, correction L).
-// Le navigateur rendra le SVG même hors-ligne.
-function buildQrSvg(text) {
-  // On délègue à un endpoint public côté client ? Non, on veut hors-ligne.
-  // À la place, on affiche un lien cliquable + URL texte en gros.
-  // Le QR code est un nice-to-have : on l'ajoute si on a une lib offline.
-  return null;
-}
-
 function safeUrl(u) {
-  return String(u).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  return String(u).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
 }
 
-function weiFromEth(ethStr) {
-  // Multiplication sûre en BigInt pour éviter les flottants
-  const [intPart, fracPart = ""] = ethStr.split(".");
-  const fracPadded = (fracPart + "0".repeat(18)).slice(0, 18);
-  return BigInt(intPart) * BigInt(10) ** BigInt(18) + BigInt(fracPadded || "0");
-}
-
-async function main() {
-  console.log("🔐 Génération d'identités pour vote multi-appareils");
-  console.log("===================================================");
-  console.log(`Nombre de comptes : ${COUNT}`);
-  console.log(`Solde par compte  : ${ETH_PER_ACCOUNT} ETH`);
-  console.log("");
-
-  const provider = ethers.provider;
-
-  // 1. Vérifier que le noeud Hardhat répond
-  try {
-    const block = await provider.getBlockNumber();
-    console.log(`✓ Noeud Hardhat joignable (block ${block})`);
-  } catch (e) {
-    console.error("❌ Impossible de joindre Hardhat sur localhost:8545");
-    console.error("   Lance d'abord: bash start.sh");
-    process.exit(1);
-  }
-
-  // 2. Générer les wallets
-  const identities = [];
-  for (let i = 0; i < COUNT; i++) {
-    const w = ethers.Wallet.createRandom();
-    identities.push({
-      idx: i,
-      address: w.address,
-      pk: w.privateKey,
-    });
-  }
-  console.log(`✓ ${identities.length} wallets générés`);
-
-  // 3. Créditer chaque compte via hardhat_setBalance
-  const balanceWei = "0x" + weiFromEth(ETH_PER_ACCOUNT).toString(16);
-  console.log(`\n💰 Crédit de ${ETH_PER_ACCOUNT} ETH par compte...`);
-  for (const id of identities) {
-    try {
-      await provider.send("hardhat_setBalance", [id.address, balanceWei]);
-      process.stdout.write(".");
-    } catch (e) {
-      console.error(`\n❌ Échec setBalance pour ${id.address}: ${e.message}`);
-      process.exit(1);
-    }
-  }
-  console.log(`\n✓ Tous les comptes crédités`);
-
-  // 4. Vérifier les soldes
-  console.log("\n🔍 Vérification des soldes:");
-  for (const id of identities.slice(0, 3)) {
-    const bal = await provider.getBalance(id.address);
-    console.log(`   ${id.address} -> ${ethers.formatEther(bal)} ETH`);
-  }
-  if (identities.length > 3) console.log(`   ... et ${identities.length - 3} autres`);
-
-  // 5. Générer la page HTML imprimable
+function renderSlips(identities, publicUrl) {
   const generatedAt = new Date().toLocaleString();
   const slipsHtml = identities
     .map((id) => {
@@ -142,9 +58,9 @@ async function main() {
         <span class="slip-value mono pk">${id.pk}</span>
       </div>
       <div class="slip-urls">
-        ${PUBLIC_URL ? `<div class="slip-url-row">
+        ${publicUrl ? `<div class="slip-url-row">
           <span class="slip-url-label">🌐 URL publique :</span>
-          <span class="slip-url-value mono">${safeUrl(PUBLIC_URL)}</span>
+          <span class="slip-url-value mono">${safeUrl(publicUrl)}</span>
         </div>` : `<div class="slip-url-row">
           <span class="slip-url-label">🌐 URL publique :</span>
           <span class="slip-url-value mono"><em>(non fournie — relance avec PUBLIC_URL=https://...)</em></span>
@@ -333,45 +249,27 @@ ${slipsHtml}
 </body>
 </html>
 `;
-
-  fs.writeFileSync(OUT_FILE, html, "utf8");
-  // Écrit l'adresse admin dans un fichier temporaire pour start.sh
-  fs.writeFileSync(ADMIN_FILE, identities[0].address + "\n", "utf8");
-  // Écrit la PK admin dans un fichier temporaire (utilisé par les scripts E2E)
-  fs.writeFileSync(ADMIN_PK_FILE, identities[0].pk + "\n", "utf8");
-  // Persiste toutes les identités (PKs en clair, fichier temporaire supprimé par start.sh)
-  // Permet à renderSlips.js de régénérer le HTML avec une URL différente
-  // SANS toucher aux clés (donc le contrat déployé reste valide)
-  fs.writeFileSync(IDENTITIES_FILE, JSON.stringify(identities), "utf8");
-
-  console.log(`\n📄 Fichier généré: ${OUT_FILE}`);
-  console.log(`   Ouvre-le dans ton navigateur, clique "Imprimer", puis supprime-le.`);
-  console.log(`\n🔧 Slip #0 (ADMINISTRATEUR) : ${identities[0].address}`);
-  console.log(`   Cette clé NE SERT PAS À VOTER. Elle sert à créer/fermer les élections.`);
-  console.log(`   Distribuer uniquement à l'organisateur.`);
-  console.log(`   Adresse écrite dans ${ADMIN_FILE} pour injection au déploiement.`);
-  console.log(`   PK admin (scripts E2E) : ${ADMIN_PK_FILE}`);
-  if (PUBLIC_URL) {
-    console.log(`\n🌐 URL publique (tunnel) : ${PUBLIC_URL}`);
-  } else {
-    console.log(`\n   (aucune PUBLIC_URL fournie — ajoute PUBLIC_URL=https://... si tu utilises un tunnel)`);
-  }
-  console.log(`\n⚠  RAPPEL SÉCURITÉ :`);
-  console.log(`   - Ce fichier contient les ${COUNT} clés privées en clair.`);
-  console.log(`   - Ne le commit jamais. Ne l'envoie jamais sur le réseau.`);
-  console.log(`   - Après impression : rm ${OUT_FILE}`);
-  console.log(`\n🚨 AVERTISSEMENT CRITIQUE — VRAIS WALLETS :`);
-  console.log(`   - Ces ${COUNT} adresses sont des keypairs Ethereum RÉELS (mêmes algo que MetaMask/Ledger).`);
-  console.log(`   - Elles n'ont de la valeur QUE sur le noeud Hardhat local (chainId 31337).`);
-  console.log(`   - ⚠️  NE FINANCE JAMAIS ces adresses sur mainnet, Sepolia ou toute chaîne publique.`);
-  console.log(`      Sinon la PK du slip = contrôle total des fonds envoyés à cette adresse.`);
-  console.log(`   - Régénère un nouveau set avant chaque démo pour rendre les anciens inertes.`);
-  console.log(`\n🎉 Terminé ! Distribue un slip par votant, le slip #0 à l'organisateur.`);
+  return html;
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((e) => {
-    console.error("❌ Erreur:", e);
+function main() {
+  if (!fs.existsSync(IDENTITIES_FILE)) {
+    console.error(`❌ ${IDENTITIES_FILE} introuvable. Lance d'abord generateIdentities.js`);
     process.exit(1);
-  });
+  }
+  const identities = JSON.parse(fs.readFileSync(IDENTITIES_FILE, "utf-8"));
+  const html = renderSlips(identities, PUBLIC_URL);
+  fs.writeFileSync(OUT_FILE, html, "utf8");
+  console.log(`✓ Slips régénérés : ${OUT_FILE}`);
+  if (PUBLIC_URL) {
+    console.log(`  URL publique intégrée : ${PUBLIC_URL}`);
+  } else {
+    console.log(`  (URL publique non fournie)`);
+  }
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = { renderSlips };
