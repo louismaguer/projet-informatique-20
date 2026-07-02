@@ -2,8 +2,6 @@
 # Lance tous les services pour la démo FHEVM locale
 set -e
 
-cd "$(dirname "$0")"
-
 # Fichier temporaire avec l'adresse admin (généré par generateIdentities.js)
 ADMIN_FILE="scripts/.admin_addr"
 ADMIN_PK_FILE="scripts/.admin_pk"
@@ -65,7 +63,7 @@ echo "✓ Contrat déployé: $CONTRACT_ADDRESS"
 # 4. Relayer proxy
 if ! lsof -i :8081 > /dev/null 2>&1; then
     echo "🔌 Démarrage relayer proxy..."
-    python3 relayer_proxy.py > /tmp/proxy.log 2>&1 &
+    python3 backend/relayer_proxy.py > /tmp/proxy.log 2>&1 &
     PROXY_PID=$!
     sleep 2
 fi
@@ -74,7 +72,7 @@ echo "✓ Relayer proxy prêt (port 8081)"
 # 5. Frontend server (no-cache pour éviter le caching navigateur)
 if ! lsof -i :8080 > /dev/null 2>&1; then
     echo "🌐 Démarrage frontend server (no-cache, avec reverse proxy intégré)..."
-    python3 frontend_server.py > /tmp/frontend.log 2>&1 &
+    python3 backend/frontend_server.py > /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
     sleep 2
 fi
@@ -87,7 +85,7 @@ PUBLIC_URL=""
 if command -v cloudflared > /dev/null 2>&1; then
     echo "🚇 Démarrage du tunnel Cloudflare..."
     # shellcheck source=scripts/cloudflared_tunnel.sh
-    source "$(dirname "$0")/scripts/cloudflared_tunnel.sh"
+    source "$(dirname "$0")/cloudflared_tunnel.sh"
     if start_cloudflared_quick_tunnel 8080 /tmp/tunnel.log; then
         echo "✓ Tunnel prêt : $PUBLIC_URL"
     else

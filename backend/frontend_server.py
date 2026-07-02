@@ -23,8 +23,9 @@ import urllib.request
 import urllib.error
 
 PORT = 8080
-DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
-DEPLOY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "deployments", "localhost")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DIRECTORY = os.path.join(ROOT, "frontend")
+DEPLOY_DIR = os.path.join(ROOT, "deployments", "localhost")
 HARDHAT_RPC = os.environ.get("HARDHAT_RPC", "http://localhost:8545")
 RELAYER_URL = os.environ.get("RELAYER_URL", "http://localhost:8081")
 
@@ -44,7 +45,7 @@ def get_contract_info():
         info["error"] = str(e)
         return info
     try:
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", ".admin_addr")) as f:
+        with open(os.path.join(ROOT, "scripts", ".admin_addr")) as f:
             info["admin"] = f.read().strip()
     except FileNotFoundError:
         pass
