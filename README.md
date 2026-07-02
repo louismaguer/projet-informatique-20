@@ -99,11 +99,6 @@ npx hardhat test
 Tests inclus : `ConfidentialVoting.ts`, `MultiDevice.ts` (10 voters en
 parallèle), `verify_confidentiality.ts`, `FHECounter.ts`.
 
-## Déployer sur un VPS
-
-Voir [`confidential-voting/infra/vps/README.md`](confidential-voting/infra/vps/README.md)
-et `setup-vps.sh` (Ubuntu 22.04/24.04, nginx ou Cloudflare Tunnel).
-
 ## Arborescence
 
 ```
@@ -123,17 +118,16 @@ et `setup-vps.sh` (Ubuntu 22.04/24.04, nginx ou Cloudflare Tunnel).
     ├── frontend_server.py        # serveur statique no-cache
     ├── relayer_proxy.py          # proxy relayer HTTP→JSON-RPC
     ├── start.sh                  # tout démarre d'un coup
-    └── infra/vps/                # déploiement VPS (systemd, nginx, cloudflared)
+    └── infra/
+        └── CLOUDFLARE_QUICKSTART.md  # exposition Internet via tunnel Cloudflare
 ```
 
 ## Documentation détaillée
 
 - [`confidential-voting/README.md`](confidential-voting/README.md) :
   sécurité, surface d'exposition, comportements garantis
-- [`confidential-voting/infra/vps/README.md`](confidential-voting/infra/vps/README.md) :
-  setup VPS, monitoring, récupération des slips
 - [`confidential-voting/infra/CLOUDFLARE_QUICKSTART.md`](confidential-voting/infra/CLOUDFLARE_QUICKSTART.md) :
-  exposition Internet via tunnel Cloudflare
+  exposition Internet via tunnel Cloudflare (depuis ta machine)
 
 ## Licence
 

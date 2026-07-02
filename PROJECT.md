@@ -174,7 +174,7 @@ récupère pas sur le téléphone de l'encadrant est une démo ratée.
 - `test/` : tests Hardhat (TypeScript)
 - `server.py` + `frontend_server.py` + `relayer_proxy.py` : backends Python
 - `start.sh` : orchestration
-- `infra/vps/` : déploiement VPS (systemd, nginx, cloudflared)
+- `infra/CLOUDFLARE_QUICKSTART.md` : doc d'exposition via tunnel Cloudflare
 
 ### 5.3 Explication du sujet
 
