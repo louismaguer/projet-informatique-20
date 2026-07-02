@@ -16,10 +16,10 @@ Le repo part du template `fhevm-hardhat-template` officiel, largement remanié e
 
 ### 2.1 Exploration du domaine
 
-Première étape : comprendre ce qu'est le chiffrement homomorphe et ce que la bibliothèque Zama expose. Deux canaux :
-notre dossier interne `explication du sujet/` (contrats Solidity, tests, frontend, déchiffrement) et la **doc
-officielle** Zama. Le déclic a été de comprendre qu'un total chiffré exige forcément une étape de déchiffrement
-explicite, et que **cette étape doit être contrôlée** (ici : l'admin, à la clôture).
+Première étape : comprendre ce qu'est le chiffrement homomorphe et ce que la bibliothèque Zama expose. La **doc
+officielle** Zama (quick-start, setup Hardhat) a suffi. Le déclic a été de comprendre qu'un total chiffré exige
+forcément une étape de déchiffrement explicite, et que **cette étape doit être contrôlée** (ici : l'admin, à la
+clôture).
 
 ### 2.2 Montée en complexité progressive
 
@@ -113,9 +113,6 @@ sous-dossiers thématiques :
 - `scripts/` : outillage Hardhat + helpers bash
 - `test/`, `tasks/`, `docs/` : tests TS, tâches Hardhat, doc complémentaire
 - `start.sh` : orchestration globale
-
-Les notes vulgarisées d'`explication du sujet/` ont été retirées — le code, ses commentaires et le `README.md` suffisent
-; la doc Zama reste en ligne pour les détails techniques.
 
 ## 6. Ce que nous aurions fait différemment avec plus de temps
 
