@@ -1,18 +1,19 @@
 # 🚀 Partage rapide avec Cloudflare Tunnel (1h de setup)
 
 > **Ce que fait ce tunnel** : il expose le port 8080 (frontend) de **ta machine** à internet via une URL
-> `*.trycloudflare.com` (ou ton domaine custom si tu l'as configuré). Les services Hardhat (8545) et relayer
-> (8081) restent sur ta machine — ils ne sont **pas** exposés publiquement ; seul le port 8080 l'est, et il
-> proxie vers les autres via le reverse proxy intégré.
+> `*.trycloudflare.com` (ou ton domaine custom si tu l'as configuré). Les services Hardhat (8545) et relayer (8081)
+> restent sur ta machine — ils ne sont **pas** exposés publiquement ; seul le port 8080 l'est, et il proxie vers les
+> autres via le reverse proxy intégré.
 >
-> ⚠️ Tant que le tunnel tourne, **n'importe qui dans le monde** ayant l'URL peut atteindre ton noeud Hardhat
-> et interagir avec le contrat déployé. Ne le laisse pas tourner en dehors d'une démo.
+> ⚠️ Tant que le tunnel tourne, **n'importe qui dans le monde** ayant l'URL peut atteindre ton noeud Hardhat et
+> interagir avec le contrat déployé. Ne le laisse pas tourner en dehors d'une démo.
 
 ## Pour les testeurs
 
 **URL** : https://vote.tondomaine.xyz (à remplacer par ton hostname)
 
 **Comment voter** :
+
 1. Ouvre l'URL sur ton téléphone ou PC (n'importe quel réseau)
 2. Colle la clé privée reçue sur ton slip
 3. Choisis l'élection, l'option, clique « Chiffrer et envoyer le vote »
@@ -27,6 +28,7 @@
 ### 1. Acheter un domaine (5 min, ~1€/an)
 
 Va sur **OVH** (ovh.com) ou **Namecheap** et achète un `.xyz` ou `.online` :
+
 - Exemple : `monvote.xyz` (~1€/an)
 - Tu n'as besoin que du domaine, pas d'hébergement
 
@@ -58,9 +60,8 @@ brew install cloudflared
 
 Ouvre cette URL dans ton navigateur → tu dois voir la page du vote.
 
-Note : `./start.sh` utilise un tunnel *quick* (URL `*.trycloudflare.com` qui change à
-chaque démarrage). Pour une URL stable avec ton propre domaine, il faudrait un
-tunnel *named* (feature non incluse dans ce projet).
+Note : `./start.sh` utilise un tunnel _quick_ (URL `*.trycloudflare.com` qui change à chaque démarrage). Pour une URL
+stable avec ton propre domaine, il faudrait un tunnel _named_ (feature non incluse dans ce projet).
 
 ### 6. Partager avec les testeurs (5 min)
 
@@ -87,12 +88,14 @@ Donne à chaque testeur son slip + l'URL.
 ## En cas de souci
 
 ### Le tunnel ne démarre pas
+
 ```bash
 cloudflared tunnel info fhevm-vote    # vérifie la config
 cat ~/.cloudflared/config.yml          # affiche la config
 ```
 
 ### L'URL ne répond pas
+
 ```bash
 # Le tunnel tourne-t-il ?
 ps aux | grep cloudflared
@@ -102,6 +105,7 @@ curl -I http://localhost:8080
 ```
 
 ### Hardhat a redémarré (élection perdue)
+
 ```bash
 rm -f scripts/.admin_addr scripts/.admin_pk
 npx hardhat run scripts/generateIdentities.js --network localhost
@@ -120,12 +124,12 @@ sleep 2
 
 ## Coût
 
-| Ressource | Coût |
-|-----------|------|
-| Domaine `.xyz` | ~1€/an |
-| Cloudflare (plan Free) | 0 € |
-| Cloudflare Tunnel | 0 € |
-| **Total** | **~1€** |
+| Ressource              | Coût    |
+| ---------------------- | ------- |
+| Domaine `.xyz`         | ~1€/an  |
+| Cloudflare (plan Free) | 0 €     |
+| Cloudflare Tunnel      | 0 €     |
+| **Total**              | **~1€** |
 
 ## Limites
 

@@ -33,7 +33,10 @@ const PUBLIC_URL = process.env.PUBLIC_URL || "";
 // QR code : voir scripts/qrcode.js (helper partagé, async).
 
 function safeUrl(u) {
-  return String(u).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  return String(u).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
 }
 
 function weiFromEth(ethStr) {
@@ -56,7 +59,7 @@ async function main() {
   try {
     const block = await provider.getBlockNumber();
     console.log(`✓ Noeud Hardhat joignable (block ${block})`);
-  } catch (e) {
+  } catch {
     console.error("❌ Impossible de joindre Hardhat sur localhost:8545");
     console.error("   Lance d'abord: bash start.sh");
     process.exit(1);
@@ -98,28 +101,25 @@ async function main() {
 
   // 5. Générer la page HTML imprimable
   const generatedAt = new Date().toLocaleString();
-  const slipsHtml = (await Promise.all(
-    identities.map(async (id) => {
-      const isAdmin = id.idx === 0;
-      const headerWarn = isAdmin ? "⚠ RÔLE ADMIN" : "⚠ CONFIDENTIEL";
-      const footerText = isAdmin
-        ? "SERT UNIQUEMENT à créer / fermer les élections. NE PAS UTILISER POUR VOTER."
-        : "DÉMO LOCALE UNIQUEMENT — ne jamais financer sur mainnet/Sepolia";
+  const slipsHtml = (
+    await Promise.all(
+      identities.map(async (id) => {
+        const isAdmin = id.idx === 0;
+        const headerWarn = isAdmin ? "⚠ RÔLE ADMIN" : "⚠ CONFIDENTIEL";
+        const footerText = isAdmin
+          ? "SERT UNIQUEMENT à créer / fermer les élections. NE PAS UTILISER POUR VOTER."
+          : "DÉMO LOCALE UNIQUEMENT — ne jamais financer sur mainnet/Sepolia";
 
-      // QR codes : URL publique + PK brute (paper wallet)
-      const qrUrl = PUBLIC_URL
-        ? await buildQrSvg(PUBLIC_URL, { size: 90, ecLevel: "M" })
-        : "";
-      const qrPk = await buildQrSvg(id.pk, { size: 110, ecLevel: "M" });
-      const urlLabel = PUBLIC_URL
-        ? `🌐 ${safeUrl(PUBLIC_URL)}`
-        : `<em>(URL publique non fournie)</em>`;
+        // QR codes : URL publique + PK brute (paper wallet)
+        const qrUrl = PUBLIC_URL ? await buildQrSvg(PUBLIC_URL, { size: 90, ecLevel: "M" }) : "";
+        const qrPk = await buildQrSvg(id.pk, { size: 110, ecLevel: "M" });
+        const urlLabel = PUBLIC_URL ? `🌐 ${safeUrl(PUBLIC_URL)}` : `<em>(URL publique non fournie)</em>`;
 
-      if (isAdmin) {
-        // === SLIP ADMIN : layout "double" (2 cellules = pleine largeur × plus grand) ===
-        // Comme un slip votant, mais étalé sur toute la largeur de la page A4,
-        // avec une note détaillée et des QR codes plus gros.
-        const qrBlock = `
+        if (isAdmin) {
+          // === SLIP ADMIN : layout "double" (2 cellules = pleine largeur × plus grand) ===
+          // Comme un slip votant, mais étalé sur toute la largeur de la page A4,
+          // avec une note détaillée et des QR codes plus gros.
+          const qrBlock = `
           <div class="slip-qr">
             <div class="slip-qr-cell">
               <div class="slip-qr-img">${qrUrl}</div>
@@ -132,7 +132,7 @@ async function main() {
               <div class="slip-qr-sublabel">Scan pour importer (à garder secrète)</div>
             </div>
           </div>`;
-        return `
+          return `
     <div class="slip slip-admin slip-admin-double">
       <div class="slip-header">
         <span class="slip-num">🔧 ADMINISTRATEUR #0</span>
@@ -159,10 +159,10 @@ async function main() {
       ${qrBlock}
       <div class="slip-footer">${footerText}</div>
     </div>`;
-      }
+        }
 
-      // === SLIP VOTANT : layout détaillé actuel ===
-      const qrBlock = `
+        // === SLIP VOTANT : layout détaillé actuel ===
+        const qrBlock = `
         <div class="slip-qr">
           <div class="slip-qr-cell">
             <div class="slip-qr-img">${qrUrl}</div>
@@ -176,7 +176,7 @@ async function main() {
           </div>
         </div>`;
 
-      return `
+        return `
     <div class="slip">
       <div class="slip-header">
         <span class="slip-num">Votant #${id.idx}</span>
@@ -193,7 +193,8 @@ async function main() {
       ${qrBlock}
       <div class="slip-footer">${footerText}</div>
     </div>`;
-    }))
+      }),
+    )
   ).join("\n");
 
   const html = `<!DOCTYPE html>

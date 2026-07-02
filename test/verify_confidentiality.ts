@@ -245,7 +245,6 @@ describe("ConfidentialVoting — Confidentiality Audit", function () {
 
   after(function () {
     const bar = "═══════════════════════════════════════════════════════════════";
-    // eslint-disable-next-line no-console
     console.log("\n" + bar);
     console.log("  CONFIDENTIALITY AUDIT — RÉSULTATS");
     console.log(bar);

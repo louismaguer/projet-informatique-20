@@ -13,6 +13,10 @@ dist
 node_modules
 types
 
+# vendor / pré-bundlé (Zama SDK) — fichiers générés, on ne les formate pas
+frontend/bundle/
+frontend/mock-fhevm.js
+
 # files
 *.env
 *.log

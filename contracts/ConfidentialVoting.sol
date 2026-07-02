@@ -47,11 +47,7 @@ contract ConfidentialVoting is ZamaEthereumConfig {
     /// @param title Titre de l'élection
     /// @param options Liste des options (candidats)
     /// @return id de l'élection créée
-    function createElection(string calldata title, string[] calldata options)
-        external
-        onlyAdmin
-        returns (uint256)
-    {
+    function createElection(string calldata title, string[] calldata options) external onlyAdmin returns (uint256) {
         require(bytes(title).length > 0, "CreateElection: title cannot be empty");
         require(options.length >= 2, "CreateElection: at least 2 options required");
         require(options.length <= 100, "CreateElection: max 100 options allowed");
@@ -87,11 +83,7 @@ contract ConfidentialVoting is ZamaEthereumConfig {
     /// @param electionId ID de l'élection
     /// @param encryptedOption Choix chiffré (0 à optionCount-1)
     /// @param inputProof Preuve pour vérifier le ciphertext
-    function castVote(
-        uint256 electionId,
-        externalEuint32 encryptedOption,
-        bytes calldata inputProof
-    ) external {
+    function castVote(uint256 electionId, externalEuint32 encryptedOption, bytes calldata inputProof) external {
         if (msg.sender == admin) revert AdminCannotVote();
         Election storage election = elections[electionId];
         require(election.id != 0, "Election does not exist");
@@ -139,22 +131,16 @@ contract ConfidentialVoting is ZamaEthereumConfig {
     }
 
     /// @notice Récupère les informations d'une élection
-    function getElection(uint256 electionId)
-        external
-        view
-        returns (string memory title, string[] memory options, bool isActive, uint256 voterCount)
-    {
+    function getElection(
+        uint256 electionId
+    ) external view returns (string memory title, string[] memory options, bool isActive, uint256 voterCount) {
         Election storage election = elections[electionId];
         require(election.id != 0, "Election does not exist");
         return (election.title, election.options, election.isActive, election.voterCount);
     }
 
     /// @notice Récupère le total chiffré pour une option
-    function getEncryptedTally(uint256 electionId, uint256 optionIndex)
-        external
-        view
-        returns (euint32)
-    {
+    function getEncryptedTally(uint256 electionId, uint256 optionIndex) external view returns (euint32) {
         require(elections[electionId].id != 0, "Election does not exist");
         require(optionIndex < elections[electionId].optionCount, "Invalid option index");
         return encryptedTallies[electionId][optionIndex];

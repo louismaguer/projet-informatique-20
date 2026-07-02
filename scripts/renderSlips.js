@@ -22,26 +22,23 @@ function safeUrl(u) {
 
 async function renderSlips(identities, publicUrl) {
   const generatedAt = new Date().toLocaleString();
-  const slipsHtml = (await Promise.all(
-    identities.map(async (id) => {
-      const isAdmin = id.idx === 0;
-      const headerWarn = isAdmin ? "⚠ RÔLE ADMIN" : "⚠ CONFIDENTIEL";
-      const footerText = isAdmin
-        ? "SERT UNIQUEMENT à créer / fermer les élections. NE PAS UTILISER POUR VOTER."
-        : "DÉMO LOCALE UNIQUEMENT — ne jamais financer sur mainnet/Sepolia";
+  const slipsHtml = (
+    await Promise.all(
+      identities.map(async (id) => {
+        const isAdmin = id.idx === 0;
+        const headerWarn = isAdmin ? "⚠ RÔLE ADMIN" : "⚠ CONFIDENTIEL";
+        const footerText = isAdmin
+          ? "SERT UNIQUEMENT à créer / fermer les élections. NE PAS UTILISER POUR VOTER."
+          : "DÉMO LOCALE UNIQUEMENT — ne jamais financer sur mainnet/Sepolia";
 
-      // QR codes : URL publique + PK brute (paper wallet)
-      const qrUrl = publicUrl
-        ? await buildQrSvg(publicUrl, { size: 90, ecLevel: "M" })
-        : "";
-      const qrPk = await buildQrSvg(id.pk, { size: 110, ecLevel: "M" });
-      const urlLabel = publicUrl
-        ? `🌐 ${safeUrl(publicUrl)}`
-        : `<em>(URL publique non fournie)</em>`;
+        // QR codes : URL publique + PK brute (paper wallet)
+        const qrUrl = publicUrl ? await buildQrSvg(publicUrl, { size: 90, ecLevel: "M" }) : "";
+        const qrPk = await buildQrSvg(id.pk, { size: 110, ecLevel: "M" });
+        const urlLabel = publicUrl ? `🌐 ${safeUrl(publicUrl)}` : `<em>(URL publique non fournie)</em>`;
 
-      if (isAdmin) {
-        // === SLIP ADMIN : layout "double" (2 cellules = pleine largeur × plus grand) ===
-        const qrBlock = `
+        if (isAdmin) {
+          // === SLIP ADMIN : layout "double" (2 cellules = pleine largeur × plus grand) ===
+          const qrBlock = `
           <div class="slip-qr">
             <div class="slip-qr-cell">
               <div class="slip-qr-img">${qrUrl}</div>
@@ -54,7 +51,7 @@ async function renderSlips(identities, publicUrl) {
               <div class="slip-qr-sublabel">Scan pour importer (à garder secrète)</div>
             </div>
           </div>`;
-        return `
+          return `
     <div class="slip slip-admin slip-admin-double">
       <div class="slip-header">
         <span class="slip-num">🔧 ADMINISTRATEUR #0</span>
@@ -81,10 +78,10 @@ async function renderSlips(identities, publicUrl) {
       ${qrBlock}
       <div class="slip-footer">${footerText}</div>
     </div>`;
-      }
+        }
 
-      // === SLIP VOTANT : layout détaillé actuel ===
-      const qrBlock = `
+        // === SLIP VOTANT : layout détaillé actuel ===
+        const qrBlock = `
         <div class="slip-qr">
           <div class="slip-qr-cell">
             <div class="slip-qr-img">${qrUrl}</div>
@@ -98,7 +95,7 @@ async function renderSlips(identities, publicUrl) {
           </div>
         </div>`;
 
-      return `
+        return `
     <div class="slip">
       <div class="slip-header">
         <span class="slip-num">Votant #${id.idx}</span>
@@ -115,7 +112,8 @@ async function renderSlips(identities, publicUrl) {
       ${qrBlock}
       <div class="slip-footer">${footerText}</div>
     </div>`;
-    }))
+      }),
+    )
   ).join("\n");
 
   const html = `<!DOCTYPE html>

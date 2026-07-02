@@ -25,7 +25,7 @@ async function main() {
   const title = `Demo ${new Date().toLocaleTimeString()}`;
   const options = ["Alice", "Bob", "Charlie"];
   const tx = await voting.createElection(title, options);
-  const receipt = await tx.wait();
+  await tx.wait();
 
   // Trouve l'ID de l'election depuis les events
   const electionCounter = await voting.electionCounter();
@@ -46,9 +46,7 @@ async function main() {
     const input = fhevm.createEncryptedInput(contractAddress, voter.address).add32(vote.option);
     const encrypted = await input.encrypt();
 
-    const voteTx = await voting
-      .connect(voter)
-      .castVote(electionId, encrypted.handles[0], encrypted.inputProof);
+    const voteTx = await voting.connect(voter).castVote(electionId, encrypted.handles[0], encrypted.inputProof);
     await voteTx.wait();
     process.stdout.write(".");
   }
@@ -64,10 +62,7 @@ async function main() {
   const results = [];
   for (let i = 0; i < options.length; i++) {
     const tallyHandle = await voting.getEncryptedTally(electionId, i);
-    const clearTally = await fhevm.publicDecryptEuint(
-      fhevm.FhevmType.euint32,
-      tallyHandle,
-    );
+    const clearTally = await fhevm.publicDecryptEuint(fhevm.FhevmType.euint32, tallyHandle);
     results.push({ option: options[i], votes: Number(clearTally) });
     console.log(`  ${options[i]}: ${clearTally} votes`);
   }
@@ -77,14 +72,21 @@ async function main() {
 
   // Sauvegarde les résultats dans un fichier pour le frontend
   const outputFile = `/tmp/demo_results_${electionId}.json`;
-  fs.writeFileSync(outputFile, JSON.stringify({
-    electionId,
-    title,
-    options,
-    results,
-    voterCount: Number(voterCount),
-    timestamp: new Date().toISOString(),
-  }, null, 2));
+  fs.writeFileSync(
+    outputFile,
+    JSON.stringify(
+      {
+        electionId,
+        title,
+        options,
+        results,
+        voterCount: Number(voterCount),
+        timestamp: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
 
   console.log(`\n💾 Résultats sauvés dans: ${outputFile}`);
   console.log("\n🎉 Demo terminée! Rechargez le frontend pour voir les résultats.");

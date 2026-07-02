@@ -3,8 +3,6 @@ import { ethers, fhevm } from "hardhat";
 import { ConfidentialVoting, ConfidentialVoting__factory } from "../types";
 import { FhevmType } from "@fhevm/hardhat-plugin";
 import { expect } from "chai";
-import * as fs from "fs";
-import * as path from "path";
 
 /**
  * Test multi-appareils : simule 2 votants utilisant des clés privées
