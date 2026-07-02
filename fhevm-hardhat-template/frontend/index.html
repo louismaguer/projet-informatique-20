@@ -834,6 +834,54 @@
         return `<div class="results-inline">${chips}</div>`;
       }
 
+      // Récupère les résultats d'une élection fermée. Stratégie :
+      //   1) Lit d'abord le cache local (rapide, instantané).
+      //   2) Sinon déchiffre publiquement les tallies via le contrat
+      //      (closeElection les a rendus publiquement déchiffrables),
+      //      met en cache, puis retourne.
+      // Cela permet à TOUS les votants (pas seulement l'admin) de voir les
+      // résultats d'une élection fermée, même après en avoir créé de
+      // nouvelles, même après un clear localStorage.
+      async function loadOrFetchResults(electionId, options, voterCount) {
+        const cache = loadResultsCache();
+        const cached = cache[String(electionId)];
+        if (cached && Array.isArray(cached.results) && cached.results.length === options.length) {
+          return cached;
+        }
+        if (!contract || !instance) return null;
+        try {
+          const handles = [];
+          for (let i = 0; i < Number(options.length); i++) {
+            const h = await contract.getEncryptedTally(electionId, i);
+            handles.push(h);
+          }
+          const validHandles = handles.filter((h) => h && h !== ethers.ZeroHash);
+          let decrypted = {};
+          if (validHandles.length > 0) {
+            decrypted = await instance.publicDecrypt(validHandles);
+          }
+          const results = handles.map((h, i) => {
+            if (h && h !== ethers.ZeroHash && decrypted[h] !== undefined) {
+              const v = decrypted[h];
+              const num = typeof v === "bigint" ? Number(v) : Number(v);
+              return { option: options[i], votes: num };
+            }
+            return { option: options[i], votes: 0 };
+          });
+          const payload = {
+            title: "",
+            options,
+            results,
+            voterCount: Number(voterCount),
+          };
+          saveResultToCache(electionId, payload);
+          return payload;
+        } catch (e) {
+          log(`⚠ Déchiffrement #${electionId} impossible : ${e.message}`, "warning");
+          return null;
+        }
+      }
+
       function escapeHtml(s) {
         return String(s).replace(
           /[&<>"']/g,
@@ -847,7 +895,6 @@
           const count = await contract.electionCounter();
           const select = document.getElementById("voteElectionId");
           const list = document.getElementById("electionsList");
-          const cache = loadResultsCache();
 
           select.innerHTML = "";
           list.innerHTML = "";
@@ -862,8 +909,16 @@
             const badge = isActive
               ? '<span class="status active">Active</span>'
               : '<span class="status closed">Fermée</span>';
-            const cached = !isActive ? cache[String(i)] : null;
-            const resultsHtml = cached ? renderResultCard(i, cached) : "";
+
+            // Pour une élection fermée, on tente d'abord le cache, sinon on
+            // déchiffre publiquement les tallies. Ainsi tout le monde voit les
+            // résultats, et ils persistent d'une élection à l'autre.
+            let resultsHtml = "";
+            if (!isActive) {
+              const payload = await loadOrFetchResults(i, options, voterCount);
+              if (payload) resultsHtml = renderResultCard(i, payload);
+            }
+
             list.innerHTML += `
                         <div class="election">
                             <h3>#${i}: ${escapeHtml(title)} ${badge}</h3>
@@ -1020,7 +1075,7 @@ Status   : confirmé on-chain</pre>
         }
         showPopup(
           "Fermeture en cours…",
-          `Envoi de closeElection(#${electionId}) puis déchiffrement public des totaux.`,
+          `Envoi de closeElection(#${electionId}). Les totaux seront déchiffrés publiquement.`,
           "pending",
           { hideClose: true },
         );
@@ -1030,35 +1085,24 @@ Status   : confirmé on-chain</pre>
           await tx.wait();
           log(`✓ Élection fermée`, "success");
 
-          log("Déchiffrement public des résultats...");
+          // Le refresh ci-dessous va auto-déchiffrer (loadOrFetchResults)
+          // et populer le cache pour tous les votants.
+          await refreshElections();
+
+          // Récupère le payload depuis le cache pour afficher la popup admin
           const [title, options, , voterCount] = await contract.getElection(electionId);
+          const payload = (await loadOrFetchResults(electionId, options, voterCount)) || {
+            options,
+            results: options.map((option) => ({ option, votes: 0 })),
+            voterCount: Number(voterCount),
+          };
 
-          const results = [];
-          for (let i = 0; i < Number(options.length); i++) {
-            const handle = await contract.getEncryptedTally(electionId, i);
-            if (handle && handle !== ethers.ZeroHash) {
-              const decrypted = await instance.publicDecrypt([handle]);
-              const value = decrypted[handle];
-              const num = typeof value === "bigint" ? Number(value) : Number(value);
-              results.push({ option: options[i], votes: num });
-              log(`  ${options[i]} : ${num} votes`, "info");
-            } else {
-              results.push({ option: options[i], votes: 0 });
-            }
-          }
-
-          // Cache pour que le résultat reste visible après refresh / fermeture popup
-          saveResultToCache(electionId, { title, options, results, voterCount: Number(voterCount) });
-
-          // Popup résultats — version compacte (les chips détaillées sont dans la liste)
           const popupBody = document.createElement("div");
           popupBody.innerHTML = `
                     <p><strong>Élection #${electionId}</strong> fermée et déchiffrée.</p>
-                    ${renderResultCard(electionId, { title, options, results, voterCount: Number(voterCount) })}
-                    <pre>Total votants : ${voterCount}</pre>`;
+                    ${renderResultCard(electionId, payload)}
+                    <pre>Total votants : ${payload.voterCount}</pre>`;
           showPopup("🏆 Résultats", popupBody, "success");
-
-          await refreshElections();
         } catch (e) {
           const reason = e.reason || e.shortMessage || e.message || String(e);
           log(`Erreur : ${reason}`, "error");
