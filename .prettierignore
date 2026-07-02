@@ -27,3 +27,7 @@ coverage.json
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+# NOTICE est un fichier texte sans extension (convention Apache/BSD)
+# → prettier ne peut pas inférer de parser, on l'ignore.
+NOTICE
