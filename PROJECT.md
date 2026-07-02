@@ -49,8 +49,10 @@ sans avoir à signer manuellement chaque appel.
 - surface d'attaque minimale (pas de code externe à auditer) ;
 - démo reproductible sans environnement virtuel Python, démarrage _one-click_.
 
-Ce port unique sert à la fois les fichiers statiques du frontend _et_ relaie les requêtes vers les services internes
-(RPC blockchain, relayer de test) — le navigateur ne voit qu'une seule origine, donc plus de problème de CORS.
+Le navigateur applique une règle de sécurité appelée CORS : par défaut, il refuse qu'une page web appelle un serveur
+différent de celui qui l'a servie. En faisant passer **toutes** les requêtes par ce même port (8080), on contourne cette
+restriction : le navigateur croit que tout vient du même endroit, alors qu'en coulisses le serveur redirige vers la
+blockchain ou le relayer.
 
 ### 3.2 Pourquoi des slips papier pour les wallets ?
 
@@ -75,10 +77,11 @@ Simple, permissive, compatible avec Zama (BSD-3-Clause-Clear) et avec toute réu
 
 ## 4. Difficultés rencontrées
 
-### 4.1 Safari coupe les slips entre deux pages
+### 4.1 Certains navigateurs coupent les slips entre deux pages
 
-Sur Safari, `page-break-inside: avoid` ne suffit pas quand un slip dépasse la moitié d'une page A4. Fix :
-`@media print { html, body { height: auto; } }` + recalibrage des hauteurs de cartes.
+Sur Safari (et plus marginalement sur d'autres navigateurs WebKit), `page-break-inside: avoid` ne suffit pas quand un
+slip dépasse la moitié d'une page A4. Fix : `@media print { html, body { height: auto; } }` + recalibrage des hauteurs
+de cartes.
 
 ### 4.2 Erreur Cloudflare 1033 (tunnel en double)
 
@@ -93,13 +96,16 @@ HTML (`renderSlips.js`, lit `.identities.json`).
 
 ### 4.4 Décodage ABI manuel en Python
 
-Pour éviter `web3.py` : mini-décodeur ABI en Python pur pour `getElection()` (tableaux dynamiques de strings), dans
-`server.py:103-154` — verbeux mais 100 % transparent.
+Le backend doit afficher les détails d'une élection (nom, options) reçus du contrat. Ces données arrivent au format
+binaire ABI d'Ethereum (le format standard pour échanger des données avec un smart contract). Pour éviter d'ajouter
+`web3.py` (lib externe lourde) comme dépendance, on a écrit un petit décodeur à la main pour `getElection()` (tableaux
+de chaînes), dans `server.py:103-154` — verbeux mais 100 % transparent, chaque octet est lu explicitement.
 
 ### 4.5 Le mode "exposition par défaut"
 
-`./start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). Tunnel activé + avertissement visible
-README/écran : une démo non récupérable sur le téléphone de l'encadrant est ratée.
+`./start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). On a choisi de garder le tunnel activé par
+défaut et d'afficher un avertissement bien visible dans le README et à l'écran — sans ça, le superviseur ne pourrait pas
+ouvrir la démo sur son téléphone.
 
 ## 5. Organisation
 
