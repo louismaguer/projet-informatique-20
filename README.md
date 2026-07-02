@@ -40,13 +40,16 @@ crypto compréhensible (opérations FHE documentées en clair dans le contrat et
 
 ## Pré-requis
 
-| Outil         | Version       | Vérif                          |
-| ------------- | ------------- | ------------------------------ |
-| Node.js       | ≥ 20          | `node -v`                      |
-| npm           | ≥ 7           | `npm -v`                       |
-| Python        | ≥ 3.8         | `python3 --version`            |
-| `lsof`        | (macOS/Linux) | utilisé par `scripts/start.sh` |
-| `cloudflared` | optionnel     | pour exposer sur internet      |
+| Outil         | Version   | Vérif                   | Notes                                                 |
+| ------------- | --------- | ----------------------- | ----------------------------------------------------- |
+| Node.js       | ≥ 20      | `node -v`               | toutes plateformes                                    |
+| npm           | ≥ 7       | `npm -v`                | livré avec Node.js                                    |
+| Bash          | ≥ 4       | `bash --version`        | macOS / Linux natif, **Git Bash** sur Windows         |
+| Python        | ≥ 3.8     | `python3 --version`     | `python` (sans `3`) accepté sur Windows               |
+| `cloudflared` | optionnel | `cloudflared --version` | expose la démo sur internet via `*.trycloudflare.com` |
+
+> `lsof` n'est plus requis : `scripts/start.sh` détecte automatiquement les ports occupés via `netstat` (Windows) ou
+> `ss` (Linux) en fallback.
 
 ## Installation
 
