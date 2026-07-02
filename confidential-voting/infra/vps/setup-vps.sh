@@ -70,7 +70,7 @@ fi
 # S'assurer que l'utilisateur fhevm possède tout
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
-cd "$APP_DIR/fhevm-hardhat-template"
+cd "$APP_DIR/confidential-voting"
 echo "📦 npm install..."
 sudo -u "$APP_USER" npm install --omit=dev
 
@@ -81,7 +81,7 @@ sudo -u "$APP_USER" npx hardhat compile
 # 6. Création des services systemd
 echo "⚙️  Installation des services systemd..."
 for svc in hardhat frontend relayer; do
-    cp "$APP_DIR/fhevm-hardhat-template/deploy/vps/fhevm-${svc}.service" "/etc/systemd/system/"
+    cp "$APP_DIR/confidential-voting/infra/vps/fhevm-${svc}.service" "/etc/systemd/system/"
 done
 systemctl daemon-reload
 
@@ -124,11 +124,11 @@ echo ""
 echo "Prochaines étapes :"
 echo "  1. Configurer nginx OU cloudflared (voir README)"
 echo "  2. Déployer le contrat :"
-echo "     cd $APP_DIR/fhevm-hardhat-template"
+echo "     cd $APP_DIR/confidential-voting"
 echo "     npx hardhat run scripts/generateIdentities.js --network localhost"
 echo "     ADMIN_ADDRESS=\$(cat scripts/.admin_addr) npx hardhat deploy --network localhost"
 echo "  3. Récupérer printIdentities.html :"
-echo "     scp ubuntu@<IP>:/opt/fhevm-vote/fhevm-hardhat-template/scripts/printIdentities.html ."
+echo "     scp ubuntu@<IP>:/opt/fhevm-vote/confidential-voting/scripts/printIdentities.html ."
 echo ""
 echo "  Si tu utilises cloudflared, voir deploy/vps/CLOUDFLARE.md"
 echo "  Si tu utilises nginx + Let's Encrypt, voir deploy/vps/NGINX.md"

@@ -103,7 +103,7 @@ curl -I http://localhost:8080
 
 ### Hardhat a redémarré (élection perdue)
 ```bash
-cd fhevm-hardhat-template
+cd confidential-voting
 rm -f scripts/.admin_addr scripts/.admin_pk
 npx hardhat run scripts/generateIdentities.js --network localhost
 ADMIN_ADDRESS=$(cat scripts/.admin_addr | tr -d '[:space:]')

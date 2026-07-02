@@ -23,7 +23,7 @@
 
 ### 1. Génération des identités (une seule fois)
 ```bash
-cd /opt/fhevm-vote/fhevm-hardhat-template
+cd /opt/fhevm-vote/confidential-voting
 npx hardhat run scripts/generateIdentities.js --network localhost
 ADMIN_ADDRESS=$(cat scripts/.admin_addr | tr -d '[:space:]')
 ADMIN_ADDRESS=$ADMIN_ADDRESS npx hardhat deploy --network localhost
@@ -32,7 +32,7 @@ ADMIN_ADDRESS=$ADMIN_ADDRESS npx hardhat deploy --network localhost
 ### 2. Récupération des slips pour impression
 ```bash
 # Depuis ton Mac
-scp ubuntu@<IP>:/opt/fhevm-vote/fhevm-hardhat-template/scripts/printIdentities.html .
+scp ubuntu@<IP>:/opt/fhevm-vote/confidential-voting/scripts/printIdentities.html .
 # Ouvre dans le navigateur, imprime, distribue
 ```
 
@@ -45,7 +45,7 @@ curl -s http://localhost:8545 -X POST -H "Content-Type: application/json" \
     -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
 
 # Si pas de réponse, Hardhat a perdu l'état. Redéploie :
-cd /opt/fhevm-vote/fhevm-hardhat-template
+cd /opt/fhevm-vote/confidential-voting
 rm -f scripts/printIdentities.html scripts/.admin_addr scripts/.admin_pk
 npx hardhat run scripts/generateIdentities.js --network localhost
 ADMIN_ADDRESS=$(cat scripts/.admin_addr | tr -d '[:space:]')
@@ -68,7 +68,7 @@ curl -s https://vote.tondomaine.xyz/api/contract | python3 -m json.tool
 ```bash
 cd /opt/fhevm-vote
 git pull
-cd fhevm-hardhat-template
+cd confidential-voting
 npm install
 npx hardhat compile
 sudo systemctl restart fhevm-hardhat fhevm-relayer fhevm-frontend

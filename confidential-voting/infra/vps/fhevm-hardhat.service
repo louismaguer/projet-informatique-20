@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=fhevm
-WorkingDirectory=/opt/fhevm-vote/fhevm-hardhat-template
+WorkingDirectory=/opt/fhevm-vote/confidential-voting
 ExecStart=/usr/bin/npx hardhat node --network hardhat --hostname 127.0.0.1
 Restart=always
 RestartSec=5

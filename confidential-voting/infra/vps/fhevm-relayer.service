@@ -1,13 +1,13 @@
 [Unit]
-Description=FHEVM Vote - Frontend server (no-cache + reverse proxy to Hardhat)
-After=fhevm-hardhat.service fhevm-relayer.service
+Description=FHEVM Vote - Relayer mock (HTTP proxy to Hardhat relayer JSON-RPC)
+After=fhevm-hardhat.service
 BindsTo=fhevm-hardhat.service
 
 [Service]
 Type=simple
 User=fhevm
-WorkingDirectory=/opt/fhevm-vote/fhevm-hardhat-template
-ExecStart=/usr/bin/python3 frontend_server.py
+WorkingDirectory=/opt/fhevm-vote/confidential-voting
+ExecStart=/usr/bin/python3 relayer_proxy.py
 Restart=always
 RestartSec=3
 StandardOutput=journal

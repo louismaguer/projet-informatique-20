@@ -145,7 +145,7 @@ Couvre : 2 wallets arbitraires, double-vote, 10 voters en parallèle, sanity che
 ## 📁 Project Structure
 
 ```
-fhevm-hardhat-template/
+confidential-voting/
 ├── contracts/           # Smart contract source files
 │   └── FHECounter.sol   # Example FHE counter contract
 ├── deploy/              # Deployment scripts

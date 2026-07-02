@@ -14,8 +14,9 @@ import socketserver
 import urllib.request
 from pathlib import Path
 
-FRONTEND_DIR = "/Users/louis/projet-informatique-20/fhevm-hardhat-template/frontend"
-HARDHAT_DIR = "/Users/louis/projet-informatique-20/fhevm-hardhat-template"
+_HERE = Path(__file__).resolve().parent
+FRONTEND_DIR = _HERE / "frontend"
+HARDHAT_DIR = _HERE
 CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
 RPC_URL = "http://localhost:8545"
 PORT = 8080
