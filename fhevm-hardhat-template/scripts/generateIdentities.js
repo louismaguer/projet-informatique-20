@@ -22,7 +22,7 @@ const fs = require("fs");
 const path = require("path");
 const { buildQrSvg } = require("./qrcode");
 
-const COUNT = parseInt(process.env.COUNT || "21", 10); // slip #0 = admin, slips #1..#N-1 = votants (20 votants par défaut)
+const COUNT = parseInt(process.env.COUNT || "151", 10); // slip #0 = admin, slips #1..#N-1 = votants (150 votants par défaut)
 const ETH_PER_ACCOUNT = process.env.ETH_PER_ACCOUNT || "100";
 const OUT_FILE = path.join(__dirname, "printIdentities.html");
 const ADMIN_FILE = path.join(__dirname, ".admin_addr");

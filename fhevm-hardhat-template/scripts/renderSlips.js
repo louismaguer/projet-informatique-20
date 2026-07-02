@@ -163,8 +163,8 @@ async function renderSlips(identities, publicUrl) {
     }
     .meta code { background: #eee; padding: 0.1rem 0.3rem; border-radius: 3px; }
     .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      display: flex;
+      flex-wrap: wrap;
       gap: 0.5cm;
     }
     .slip {
@@ -172,8 +172,11 @@ async function renderSlips(identities, publicUrl) {
       border: 2px dashed #999;
       border-radius: 4px;
       padding: 0.5rem 0.75rem;
+      flex: 0 0 calc(50% - 0.25cm);
+      max-width: calc(50% - 0.25cm);
       page-break-inside: avoid;
-      break-inside: avoid;
+      break-inside: avoid-page;
+      -webkit-column-break-inside: avoid;
       position: relative;
     }
     .slip-header {
@@ -245,14 +248,16 @@ async function renderSlips(identities, publicUrl) {
     /* Slip admin "double" : occupe les 2 cellules de la grille (pleine largeur)
        et a un contenu plus aéré, mais reste compact pour tenir sur 1 page A4. */
     .slip-admin-double {
-      grid-column: 1 / -1;
+      flex: 0 0 100%;
+      max-width: 100%;
       padding: 0.5rem 0.7rem;
       background: #fffbeb;
       border: 2px solid #f59e0b;
       border-style: solid;
       border-radius: 4px;
       page-break-inside: avoid;
-      break-inside: avoid;
+      break-inside: avoid-page;
+      -webkit-column-break-inside: avoid;
     }
     .slip-admin-double .slip-num {
       font-size: 1rem;
@@ -376,12 +381,47 @@ async function renderSlips(identities, publicUrl) {
     @media print {
       body { background: #fff; padding: 0; }
       .controls, .meta { display: none; }
-      .grid { grid-template-columns: repeat(2, 1fr); gap: 0.3cm; }
-      .slip { border-style: dashed; page-break-inside: avoid; break-inside: avoid; }
+      .grid { gap: 0.3cm; }
+      .slip {
+        border-style: dashed;
+        flex: 0 0 calc(50% - 0.15cm);
+        max-width: calc(50% - 0.15cm);
+        padding: 0.35rem 0.5rem;
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+        -webkit-column-break-inside: avoid;
+      }
+      .slip-label { font-size: 0.58rem; }
+      .slip-value { font-size: 0.68rem; }
+      .slip-footer { font-size: 0.55rem; margin-top: 0.2rem; }
+      .slip-row { margin: 0.18rem 0; }
+      .slip-qr { gap: 0.3rem; margin: 0.25rem 0 0.1rem; padding-top: 0.2rem; }
+      .slip-qr-cell svg { width: 70px; height: 70px; }
+      .slip-qr-secret svg { width: 85px; height: 85px; }
+      .slip-qr-secret { padding: 0.15rem 0.2rem; }
+      .slip-qr-label { font-size: 0.55rem; }
+      .slip-qr-sublabel { font-size: 0.5rem; max-width: 90px; }
       .slip-admin { border-style: solid; }
-      .slip-admin-double { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
+      .slip-admin-double {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding: 0.35rem 0.5rem;
+        page-break-after: always;
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+        -webkit-column-break-inside: avoid;
+      }
+      .slip-admin-double .slip-qr { gap: 0.5rem; }
+      .slip-admin-double .slip-qr-cell svg { width: 80px; height: 80px; }
+      .slip-admin-double .slip-qr-secret svg { width: 95px; height: 95px; }
+      .slip-admin-double .slip-label { font-size: 0.62rem; }
+      .slip-admin-double .slip-value { font-size: 0.7rem; }
       /* Évite qu'une coupure tombe au milieu d'un QR code */
-      .slip-qr-cell { page-break-inside: avoid; break-inside: avoid; }
+      .slip-qr-cell {
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+        -webkit-column-break-inside: avoid;
+      }
     }
   </style>
 </head>
