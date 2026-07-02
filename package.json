@@ -6,7 +6,7 @@
     "node": ">=20",
     "npm": ">=7.0.0"
   },
-  "license": "BSD-3-Clause-Clear",
+  "license": "MIT",
   "homepage": ".",
   "repository": {
     "type": "git",
