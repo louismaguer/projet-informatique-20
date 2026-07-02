@@ -1,0 +1,8 @@
+# Dépendances Python pour les serveurs de la démo.
+#
+# Aucun paquet externe n'est nécessaire : les trois scripts Python
+# (server.py, frontend_server.py, relayer_proxy.py) n'utilisent que la
+# bibliothèque standard (http.server, socketserver, urllib, json, subprocess,
+# pathlib, threading).
+#
+# Versions Python testées : 3.10, 3.11, 3.12 (>= 3.8 devrait fonctionner).

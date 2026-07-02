@@ -31,6 +31,7 @@ COUNT_ABI = {
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
+        # Sert les fichiers statiques du frontend et route les /api/* ci-dessous.
         super().__init__(*args, directory=FRONTEND_DIR, **kwargs)
 
     def log_message(self, format, *args):
@@ -45,6 +46,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/api/elections"):
             self.list_elections()
         else:
+            # Tout le reste : fichier statique du frontend
             super().do_GET()
 
     def do_POST(self):
@@ -58,11 +60,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
 
     def handle_cors(self):
+        # CORS permissif : nécessaire car le frontend peut être servi depuis
+        # un autre origine (tunnel Cloudflare, autre port LAN).
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
     def do_OPTIONS(self):
+        # Pré-vol CORS (navigateur envoie OPTIONS avant POST cross-origin).
         self.send_response(200)
         self.handle_cors()
         self.end_headers()
@@ -75,6 +80,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(data).encode())
 
     def rpc_call(self, method, params=[]):
+        """Envoie une requête JSON-RPC au noeud Hardhat local et renvoie (result, error)."""
         payload = json.dumps({
             "jsonrpc": "2.0",
             "method": method,
@@ -87,6 +93,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             headers={"Content-Type": "application/json"}
         )
         try:
+            # 10s : Hardhat local répond en <100ms ; au-delà on suppose que le noeud est tombé.
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
                 return data.get("result"), data.get("error")
@@ -94,6 +101,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return None, str(e)
 
     def read_block(self, n):
+        # Helper générique : appel `eth_call` avec juste un uint256 comme donnée,
+        # utilisé pour lire le compteur d'élections (slot 0).
         data = "0x" + format(n, "064x")
         result, _ = self.rpc_call("eth_call", [{"to": CONTRACT_ADDRESS, "data": data}, "latest"])
         if not result or result == "0x":
@@ -101,7 +110,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return int(result, 16)
 
     def read_election(self, election_id):
-        """Lit une election via eth_call"""
+        """Lit une election via eth_call et décode l'ABI manuellement.
+
+        Le contrat retourne un struct Election (id, title, options, isActive,
+        voterCount) plus les tableaux dynamiques title et options en queue.
+        Le layout ABI d'une struct avec strings dynamiques est :
+          [0..64)   id
+          [64..128) offset de title
+          [128..192) offset de options[]
+          [192..256) isActive
+          [256..320) voterCount
+          [title_offset]    longueur de title (en octets)
+          [title_offset+32] données de title
+          [options_offset]    longueur de options[]
+          [options_offset+32] premier offset de string (relatif à options_offset)
+          ...
+        """
         data = COUNT_ABI["getElection"] + format(election_id, "064x")
         result, err = self.rpc_call("eth_call", [{"to": CONTRACT_ADDRESS, "data": data}, "latest"])
         if not result or result == "0x":
@@ -111,13 +135,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if len(hex_data) < 320:
             return None
 
+        # Champs statiques du struct
         e_id = int(hex_data[0:64], 16)
         title_offset = int(hex_data[64:128], 16)
         options_offset = int(hex_data[128:192], 16)
         is_active = int(hex_data[192:256], 16) == 1
         voter_count = int(hex_data[256:320], 16)
 
-        # Decode title
+        # Decode title (string dynamique : longueur en octets puis UTF-8)
         try:
             title_len = int(hex_data[title_offset*2:title_offset*2+64], 16)
             title_hex = hex_data[title_offset*2+64:title_offset*2+64+title_len*2]
@@ -125,7 +150,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except Exception:
             title = "(erreur)"
 
-        # Decode options array (dynamique)
+        # Decode options array (tableau dynamique de strings)
         options = []
         try:
             opts_len = int(hex_data[options_offset*2:options_offset*2+64], 16)
@@ -133,6 +158,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             for _ in range(opts_len):
                 if offset_pos + 64 > len(hex_data):
                     break
+                # Offset relatif de chaque string par rapport au début du tableau
                 str_offset = int(hex_data[offset_pos:offset_pos+64], 16)
                 str_pos = options_offset*2 + str_offset*2
                 if str_pos + 64 > len(hex_data):
@@ -179,6 +205,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             counter_int = 0
 
         elections = []
+        # Itère de 1 à N ; les IDs sont 1-indexés (0 = sentinel).
         for i in range(1, counter_int + 1):
             election = self.read_election(i)
             if election:
@@ -192,6 +219,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.respond_json({"ok": False, "error": "Election non trouvée"}, 404)
                 return
 
+            # Pour chaque option, on lit le handle FHE (ciphertext) du total.
+            # Le déchiffrement n'est PAS fait ici : c'est le contrat qui le
+            # fait via une ACL quand l'admin clôture (demande publique).
             results = []
             for i in range(len(election["options"])):
                 data = COUNT_ABI["getEncryptedTally"] + format(int(election_id), "064x") + format(i, "064x")
@@ -206,6 +236,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.respond_json({"ok": False, "error": str(e)}, 500)
 
     def run_demo(self):
+        # Lance `scripts/demo.js` qui crée une élection, fait voter 3 wallets
+        # aléatoires, puis clôture et affiche les résultats. Utile pour la démo
+        # "zero-click" depuis l'UI.
         try:
             env = os.environ.copy()
             env["CONTRACT_ADDRESS"] = CONTRACT_ADDRESS
@@ -238,6 +271,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.respond_json({"ok": False, "error": "Titre et au moins 2 options requis"}, 400)
                 return
 
+            # Le script JS attend un titre et une liste d'options séparées par
+            # des virgules (évite de modifier le contrat pour chaque variante).
             args = [title, ",".join(options)]
             env = os.environ.copy()
             env["CONTRACT_ADDRESS"] = CONTRACT_ADDRESS
@@ -287,6 +322,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def run():
+    # allow_reuse_address évite le "Address already in use" quand on relance
+    # le serveur peu après l'avoir tué (le socket reste en TIME_WAIT ~30s).
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:
         print(f"🌐 Backend running on http://localhost:{PORT}")

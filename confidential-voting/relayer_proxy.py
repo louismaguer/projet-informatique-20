@@ -36,14 +36,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        # 1. Trouver la méthode JSON-RPC correspondante
+        # 1. Trouver la méthode JSON-RPC correspondante au chemin HTTP
         rpc_method = None
         for prefix_path, rpc_name in PATH_TO_RPC.items():
             if self.path == prefix_path or self.path.rstrip("/") == prefix_path.rstrip("/"):
                 rpc_method = rpc_name
                 break
         if not rpc_method:
-            # Fallback : essayer de dériver le nom
+            # Fallback : dériver le nom à partir du suffixe du chemin
+            # (ex. "/v1/user-decrypt" -> "user-decrypt" -> "fhevm_relayer_v1_user_decrypt")
             for prefix_path, rpc_name in PATH_TO_RPC.items():
                 if self.path.endswith(prefix_path.lstrip("/")):
                     rpc_method = rpc_name
@@ -61,9 +62,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             params = json.loads(body_bytes.decode("utf-8")) if body_bytes else {}
         except json.JSONDecodeError:
+            # Body non-JSON : on le passe tel quel en string (rare, mais le SDK
+            # peut envoyer du texte brut dans certains cas).
             params = body_bytes.decode("utf-8", errors="replace")
 
-        # 3. Convertir en JSON-RPC
+        # 3. Convertir en JSON-RPC standard (le hardhat mock comprend ce format).
         payload = json.dumps({
             "jsonrpc": "2.0",
             "method": rpc_method,
@@ -81,6 +84,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=30) as resp:
                 hardhat_resp = resp.read().decode()
         except Exception as e:
+            # 502 Bad Gateway : on indique clairement que c'est le backend en aval qui a planté.
             self.send_response(502)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -88,11 +92,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": str(e)}).encode())
             return
 
-        # 5. Renvoyer la réponse au client HTTP
+        # 5. Renvoyer la réponse au client HTTP en désencapsulant le champ `result`
         try:
             parsed = json.loads(hardhat_resp)
+            # Si la réponse est enveloppée JSON-RPC (champ `result`), on extrait ;
+            # sinon on renvoie la réponse brute (compatibilité anciens clients).
             result = parsed.get("result", parsed)
-            # Le résultat de hardhat est la réponse du mock relayer
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")

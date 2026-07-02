@@ -100,6 +100,12 @@ contract ConfidentialVoting is ZamaEthereumConfig {
 
         euint32 voteValue = FHE.fromExternal(encryptedOption, inputProof);
 
+        // Mise à jour homomorphe des compteurs : on parcourt toutes les options
+        // et on ajoute 1 (chiffré) au compteur de l'option choisie, 0 aux autres.
+        // C'est l'astuce classique du "one-hot increment" en FHE : on ne peut
+        // pas faire de `if`/branchement sur une valeur chiffrée, donc on
+        // calcule tous les increments simultanément et on somme celui qui
+        // correspond au vote. Coût : O(optionCount) opérations FHE par vote.
         for (uint256 i = 0; i < election.optionCount; i++) {
             euint32 optionIndex = FHE.asEuint32(uint32(i));
             ebool isThisOption = FHE.eq(voteValue, optionIndex);
