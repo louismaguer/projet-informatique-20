@@ -1,0 +1,18 @@
+NOTICE — Third-party attributions
+
+This project is built on top of the Zama FHEVM Hardhat template
+(https://github.com/zama-ai/fhevm-hardhat-template), which was used as
+the starting point for the Solidity + Hardhat + FHEVM mock toolchain.
+
+Upstream license: BSD-3-Clause-Clear (see Zama's repository for the full
+text). All original code from the upstream template that remains in this
+repository (the @fhevm hardhat plugin configuration, the Solidity helper
+imports, the bundle of the Zama relayer SDK in frontend/bundle/) is used
+in accordance with that license.
+
+Project-specific additions (the ConfidentialVoting.sol contract, the
+multi-device voting flow with paper slips, the Python reverse-proxy
+backends, the Cloudflare Tunnel integration, and the documentation) are
+released under the MIT License — see LICENSE.
+
+— Louis, 2026

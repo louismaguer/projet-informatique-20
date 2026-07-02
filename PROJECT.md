@@ -16,9 +16,10 @@ qui implémente le chiffrement homomorphe (Fully Homomorphic Encryption)
 pour la blockchain EVM : on peut exécuter des additions (et certaines
 opérations) sur des `euint32` chiffrés sans jamais les déchiffrer.
 
-Le repo part du template `fhevm-hardhat-template` officiel de Zama
-(qu'on a renommé `confidential-voting/` car le nom original était trompeur
-— ce n'est plus un template, c'est le projet lui-même).
+Le repo part du template `fhevm-hardhat-template` officiel de Zama.
+Le code a depuis été largement remanié et vit maintenant directement à
+la racine du dépôt — le nom historique du wrapper n'apparaît plus dans
+l'arborescence.
 
 ## 2. Démarche
 
@@ -167,20 +168,29 @@ récupère pas sur le téléphone de l'encadrant est une démo ratée.
 
 ### 5.2 Arborescence
 
-- `contracts/` : Solidity
-- `deploy/` : script de déploiement Hardhat
-- `frontend/` : UI statique (HTML + JS vanilla, SDK Zama pré-bundlé)
-- `scripts/` : outillage (génération d'identités, slips, démo)
+Tout vit à la racine du dépôt (aplatissement post-cleanup). La
+distinction se fait par sous-dossiers thématiques :
+
+- `contracts/` : Solidity (le seul fichier : `ConfidentialVoting.sol`)
+- `deploy/` : script de déploiement Hardhat (`deploy.ts`)
+- `frontend/` : UI statique (HTML + JS vanilla, SDK Zama pré-bundlé
+  dans `frontend/bundle/`)
+- `backend/` : serveurs Python en stdlib (`server.py`,
+  `frontend_server.py`, `relayer_proxy.py`)
+- `scripts/` : outillage Hardhat (génération d'identités, slips, démo,
+  E2E admin, helpers bash)
 - `test/` : tests Hardhat (TypeScript)
-- `server.py` + `frontend_server.py` + `relayer_proxy.py` : backends Python
-- `start.sh` : orchestration
-- `infra/CLOUDFLARE_QUICKSTART.md` : doc d'exposition via tunnel Cloudflare
+- `tasks/` : tâches Hardhat personnalisées (`accounts.ts`)
+- `docs/` : documentation complémentaire (Cloudflare Tunnel)
+- `start.sh` : orchestration globale
 
-### 5.3 Explication du sujet
+### 5.3 Documents de référence
 
-Les 5 articles vulgarisés dans `explication du sujet/` sont restés tels
-quels. Ils ont servi de **référence mentale** au début, et permettent à
-un lecteur non-initié de comprendre le FHE avant de plonger dans le code.
+Les articles vulgarisés FHE/Solidity qui étaient à l'origine dans
+`explication du sujet/` ont été retirés du dépôt — le code et ses
+commentaires, ainsi que le `README.md` à la racine, suffisent à un
+lecteur motivé pour reconstituer le contexte. La doc officielle
+Zama reste accessible en ligne pour les détails FHEVM.
 
 ## 6. Ce que j'aurais fait différemment avec plus de temps
 

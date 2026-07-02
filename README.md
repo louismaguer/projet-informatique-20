@@ -27,19 +27,19 @@ révélé qu'à la clôture, par l'admin.
 ## Installation
 
 ```bash
-cd confidential-voting
 npm install
 ```
 
-> **Aucun `pip install` requis** : les serveurs Python n'utilisent que la
-> bibliothèque standard. Voir `requirements.txt` à la racine.
+> **Aucun `pip install` requis** : les serveurs Python (`backend/*.py`)
+> n'utilisent que la bibliothèque standard. Voir `requirements.txt` à
+> la racine.
 
 ## Démarrage de la démo
 
 À la racine du dépôt :
 
 ```bash
-./confidential-voting/start.sh
+./start.sh
 ```
 
 Le script :
@@ -65,11 +65,11 @@ Le script :
 
 ### Côté organisateur (1 fois)
 
-1. Ouvre `confidential-voting/scripts/printIdentities.html` dans un
-   navigateur → clique **Imprimer** → coupe les 151 slips.
+1. Ouvre `scripts/printIdentities.html` dans un navigateur → clique
+   **Imprimer** → coupe les 151 slips.
 2. **Supprime** le fichier après impression :
    ```bash
-   rm confidential-voting/scripts/printIdentities.html
+   rm scripts/printIdentities.html
    ```
 3. Note l'URL affichée par `./start.sh` (le tunnel `trycloudflare.com`
    si activé, sinon l'IP locale).
@@ -88,47 +88,137 @@ Après avoir collé sa PK, l'admin voit un panneau supplémentaire :
 **créer une élection** (titre + ≥ 2 options) et **clôturer** une élection
 pour révéler les résultats.
 
+## 🗳 Vote multi-appareils (détails)
+
+Le frontend n'embarque **aucune clé privée**. Chaque votant utilise sa
+propre identité, reçue sur un slip papier imprimé par l'admin.
+
+**Surface d'exposition** (par défaut avec `./start.sh`) :
+
+- Tourne sur **ta machine** (localhost :8080 / :8081 / :8545)
+- Accessible depuis ton LAN à `http://<IP-locale>:8080`
+- **Exposé à internet** via un tunnel Cloudflare `*.trycloudflare.com`
+  (URL affichée par `./start.sh`) — **uniquement si `cloudflared` est
+  installé** sur ta machine. Sinon, seul le LAN est accessible.
+
+Le tunnel est ce qui permet à des votants distants (réseau mobile, autre
+WiFi) de voter. Sans lui, les votants doivent être sur le même LAN que
+ta machine.
+
+> ## ⚠️ AVERTISSEMENT CRITIQUE — wallets de démo
+>
+> Les 151 wallets générés par `generateIdentities.js` (1 admin + 150
+> votants par défaut, configurable via `COUNT=N`) sont de **vrais
+> keypairs cryptographiques** (mêmes algo que MetaMask/Ledger). Ils
+> n'ont de la valeur **que** sur le noeud Hardhat local (chainId 31337).
+>
+> **Ne finance JAMAIS ces adresses sur mainnet, Sepolia ou toute autre
+> chaîne publique.** Si quelqu'un (toi, un dev, une erreur de
+> copier-coller) envoie de l'ETH réel à une de ces adresses, la clé
+> privée imprimée sur le slip contrôle ces fonds — et quiconque a vu
+> le slip aussi.
+>
+> Régénérer un nouveau set avant chaque démo pour rendre les anciens
+> inertes.
+
+### Comportements garantis
+
+| Cas                                                              | Résultat                                                                                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2 votants distincts (PK différentes) votent sur la même élection | `voterCount = 2` ✓                                                                                                       |
+| Même wallet tente un 2ᵉ vote                                     | Rejeté (`Already voted`) ✓                                                                                               |
+| Wallet sans ETH                                                  | Message d'erreur explicite + bouton pour re-demander une PK                                                              |
+| Appareil perdu / volé                                            | Le votant peut cliquer « 🚪 Se déconnecter » → la PK disparaît du localStorage. L'admin peut créditer un nouveau slip. |
+
+### Sécurité — ce qui est et n'est pas protégé
+
+| ✅ Protégé                                                     | ❌ Non protégé (assumé en démo)                                                         |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Choix de chaque votant (chiffrement FHE local avant envoi)     | Authentification du votant (n'importe qui avec un slip peut voter)                      |
+| Vote individuel invisible jusqu'à la clôture                   | Risque de regard par-dessus l'épaule quand la PK est collée                             |
+| Ta clé ne quitte jamais ton appareil                           | `localStorage` non chiffré au repos sur ton appareil                                    |
+| Réseau : HTTPS via tunnel Cloudflare, mais ciphertext FHE = opaque | En local (LAN) le transport est HTTP en clair ; sans tunnel, un sniffer sur le LAN peut observer les requêtes RPC |
+| URL tunnel sans auth → quiconque la devine peut voter          | Attaque physique sur l'appareil entre le moment où tu colles la PK et celui où tu votes |
+
+> **Important** : si `cloudflared` est installé sur ta machine, `./start.sh`
+> expose automatiquement le service à internet via un tunnel Cloudflare.
+> Toute personne qui obtient l'URL `trycloudflare.com` peut alors atteindre
+> ton noeud Hardhat. Pour une démo 100% locale, tue le tunnel
+> (`pkill -f cloudflared`) et utilise uniquement l'IP LAN.
+
 ## Tester le contrat
 
 ```bash
-cd confidential-voting
 npm run compile
 npx hardhat test
 ```
 
-Tests inclus : `ConfidentialVoting.ts`, `MultiDevice.ts` (10 voters en
-parallèle), `verify_confidentiality.ts`, `FHECounter.ts`.
+Tests inclus :
+
+- `ConfidentialVoting.ts` — couverture des flux `createElection` /
+  `castVote` / `closeElection`, y compris les rejets (admin ne vote
+  pas, double-vote, options invalides).
+- `MultiDevice.ts` — 10 voters en parallèle, sanity check de la
+  génération de wallets par `ethers.Wallet.createRandom`.
+- `verify_confidentiality.ts` — vérifie que le `tally` reste
+  chiffré (`euint32`) tant que l'élection n'est pas close, et n'est
+  déchiffrable qu'après.
 
 ## Arborescence
 
 ```
 .
 ├── LICENSE                       # MIT
-├── README.md                     # ce fichier (manuel utilisateur)
+├── NOTICE                        # attribution Zama (BSD-3-Clause-Clear upstream)
+├── README.md                     # ce fichier (manuel + détails sécurité)
 ├── PROJECT.md                    # démarche, choix techniques, axes d'amélioration
 ├── requirements.txt              # Python : stdlib only
-├── explication du sujet/         # articles de fond (FHE, Solidity, etc.)
-└── confidential-voting/          # le projet
-    ├── contracts/                # Solidity : ConfidentialVoting.sol
-    ├── deploy/                   # script de déploiement Hardhat
-    ├── frontend/                 # UI HTML/JS + SDK Zama pré-bundlé
-    ├── scripts/                  # génération d'identités, slips, démo
-    ├── test/                     # tests Hardhat
-    ├── server.py                 # backend Python (API + reverse proxy)
-    ├── frontend_server.py        # serveur statique no-cache
-    ├── relayer_proxy.py          # proxy relayer HTTP→JSON-RPC
-    ├── start.sh                  # tout démarre d'un coup
-    └── infra/
-        └── CLOUDFLARE_QUICKSTART.md  # exposition Internet via tunnel Cloudflare
+├── .github/workflows/            # CI héritée (build + test Windows/Unix)
+├── contracts/
+│   └── ConfidentialVoting.sol    # contrat Solidity FHE (vote chiffré)
+├── deploy/deploy.ts              # script de déploiement Hardhat
+├── frontend/                     # UI HTML/JS + SDK Zama pré-bundlé
+│   ├── index.html
+│   ├── mock-fhevm.js
+│   └── bundle/                   # SDK Zama (kms_lib_bg.wasm, relayer-sdk-js, …)
+├── backend/                      # serveurs Python (stdlib only)
+│   ├── server.py                 # backend API + reverse proxy
+│   ├── frontend_server.py        # serveur statique no-cache
+│   └── relayer_proxy.py          # proxy relayer HTTP → JSON-RPC
+├── scripts/                      # outillage Hardhat
+│   ├── closeElection.js
+│   ├── createElection.js
+│   ├── demo.js
+│   ├── e2e_admin.ts
+│   ├── generateIdentities.js     # 151 wallets aléatoires + slips papier
+│   ├── qrcode.js
+│   ├── renderSlips.js            # régénère les slips sans changer les clés
+│   ├── cloudflared_tunnel.sh
+│   └── regen-slips.sh            # helper bash
+├── test/
+│   ├── ConfidentialVoting.ts
+│   ├── MultiDevice.ts
+│   └── verify_confidentiality.ts
+├── tasks/accounts.ts             # `npx hardhat accounts` — liste les signers
+├── docs/
+│   └── CLOUDFLARE_TUNNEL.md      # doc d'exposition Internet via tunnel
+├── hardhat.config.ts
+├── package.json + package-lock.json
+├── start.sh                      # lance tout d'un coup
+└── tsconfig.json / eslint.config.mjs
 ```
 
-## Documentation détaillée
+## Documentation complémentaire
 
-- [`confidential-voting/README.md`](confidential-voting/README.md) :
-  sécurité, surface d'exposition, comportements garantis
-- [`confidential-voting/infra/CLOUDFLARE_QUICKSTART.md`](confidential-voting/infra/CLOUDFLARE_QUICKSTART.md) :
-  exposition Internet via tunnel Cloudflare (depuis ta machine)
+- [`PROJECT.md`](PROJECT.md) — démarche, choix techniques, difficultés,
+  organisation, axes d'amélioration.
+- [`docs/CLOUDFLARE_TUNNEL.md`](docs/CLOUDFLARE_TUNNEL.md) — exposition
+  Internet via tunnel Cloudflare (depuis ta machine).
+- [FHEVM Documentation](https://docs.zama.ai/fhevm) — la doc officielle
+  Zama sur le chiffrement homomorphe appliqué à l'EVM.
 
 ## Licence
 
-MIT — voir [`LICENSE`](LICENSE).
+MIT — voir [`LICENSE`](LICENSE). Le code amont issu du template Zama
+reste sous BSD-3-Clause-Clear ; voir [`NOTICE`](NOTICE) pour les
+attributions.

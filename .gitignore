@@ -1,6 +1,5 @@
 # Dependencies
 **/node_modules/
-**/package-lock.json
 
 # Hardhat build outputs
 **/artifacts/
@@ -27,3 +26,10 @@
 # Environment
 .env
 .env.local
+
+# Slips d'identités générés par scripts/generateIdentities.js
+# (contiennent les clés privées en clair — NE JAMAIS COMMITER)
+scripts/printIdentities.html
+scripts/.admin_addr
+scripts/.admin_pk
+scripts/.identities.json
