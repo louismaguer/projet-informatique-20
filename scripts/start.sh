@@ -28,6 +28,28 @@ _port_in_use() {
     [ -n "$(_port_listeners "$1")" ]
 }
 
+# Attend que le port $1 passe en LISTENING (max $2 secondes, défaut 10).
+# Si $3 est fourni, affiche les 10 dernières lignes du log en cas d'échec.
+# Renvoie 0 si le port est UP, 1 sinon.
+_wait_for_port() {
+    local port="$1"
+    local timeout="${2:-10}"
+    local log="${3:-}"
+    local i
+    for i in $(seq 1 "$timeout"); do
+        if _port_in_use "$port"; then
+            return 0
+        fi
+        sleep 1
+    done
+    if [ -n "$log" ] && [ -f "$log" ]; then
+        echo "   --- tail de $log ---" >&2
+        tail -10 "$log" >&2 || true
+        echo "   --- fin ---" >&2
+    fi
+    return 1
+}
+
 # Tue un PID de façon portable (kill POSIX sur Unix, taskkill sur Windows).
 _kill_pid() {
     local pid="$1"
@@ -109,7 +131,10 @@ if ! _port_in_use 8081; then
     echo "🔌 Démarrage relayer proxy..."
     "$PY" backend/relayer_proxy.py > /tmp/proxy.log 2>&1 &
     PROXY_PID=$!
-    sleep 2
+fi
+if ! _wait_for_port 8081 10 /tmp/proxy.log; then
+    echo "❌ Relayer proxy NON démarré sur :8081 (voir /tmp/proxy.log)"
+    exit 1
 fi
 echo "✓ Relayer proxy prêt (port 8081)"
 
@@ -118,7 +143,10 @@ if ! _port_in_use 8080; then
     echo "🌐 Démarrage frontend server (no-cache, avec reverse proxy intégré)..."
     "$PY" backend/frontend_server.py > /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
-    sleep 2
+fi
+if ! _wait_for_port 8080 10 /tmp/frontend.log; then
+    echo "❌ Frontend NON démarré sur :8080 (voir /tmp/frontend.log)"
+    exit 1
 fi
 echo "✓ Frontend prêt (port 8080)"
 
