@@ -1,4 +1,7 @@
-# Vote Confidentiel FHEVM
+# Vote Confidentiel End-to-End avec FHEVM
+
+> **Objectif** : déployer un contrat de vote sur Ethereum où les bulletins
+> restent chiffrés, mais où le total est calculé on-chain.
 
 Application de vote multi-appareils où **chaque bulletin est chiffré avant
 d'être envoyé** au contrat, grâce au chiffrement homomorphe (FHE) de Zama.
@@ -13,6 +16,34 @@ révélé qu'à la clôture, par l'admin.
 └────────────────┘                     │  ConfidentialVoting │
                                        └──────────────────┘
 ```
+
+## Livrables
+
+- ✅ **Contrat Solidity avec types chiffrés** : `contracts/ConfidentialVoting.sol`
+  utilise `euint32`, `ebool`, `externalEuint32` et les opérations
+  `FHE.fromExternal` / `FHE.eq` / `FHE.select` / `FHE.add` /
+  `FHE.makePubliclyDecryptable`.
+- ✅ **Frontend minimal qui chiffre le vote avec le SDK** :
+  `frontend/index.html` charge le SDK Zama (`frontend/bundle/relayer-sdk-js.js`)
+  et chiffre chaque bulletin avec `instance.createEncryptedInput(...)`
+  avant d'envoyer la transaction.
+- ✅ **Déchiffrement final du résultat** : `closeElection()` rend les
+  totaux déchiffrables publiquement (`FHE.makePubliclyDecryptable`), puis
+  le frontend appelle `instance.publicDecrypt([...])` pour afficher les
+  résultats en clair.
+- ✅ **Tests unitaires + scénario e2e** :
+  - unitaires : `test/ConfidentialVoting.ts`, `test/MultiDevice.ts`,
+    `test/verify_confidentiality.ts` ;
+  - e2e : `scripts/e2e_admin.ts` (parcours admin complet : créer une
+    élection, voter, clôturer) + `scripts/demo.js` (scénario automatique).
+- ✅ **Mini note « ce qui est privé, ce qui ne l'est pas »** : voir
+  la section [🔒 Ce qui est privé, ce qui ne l'est pas](#-ce-qui-est-prive-ce-qui-ne-lest-pas) plus bas dans ce README.
+
+**Pourquoi c'est bien** : produit visible (le votant clique, un total
+chiffré apparaît, puis en clair après clôture), crypto compréhensible
+(opérations FHE documentées en clair dans le contrat et dans
+`PROJECT.md`), difficulté maîtrisable (template Zama + mock relayer
+local, pas de déploiement mainnet requis).
 
 ## Pré-requis
 
@@ -130,7 +161,11 @@ ta machine.
 | Wallet sans ETH                                                  | Message d'erreur explicite + bouton pour re-demander une PK                                                              |
 | Appareil perdu / volé                                            | Le votant peut cliquer « 🚪 Se déconnecter » → la PK disparaît du localStorage. L'admin peut créditer un nouveau slip. |
 
-### Sécurité — ce qui est et n'est pas protégé
+## 🔒 Ce qui est prive, ce qui ne l'est pas
+
+> **Mini note** : cette section résume en deux colonnes ce que la crypto
+> FHE protège réellement, et les points où la démo fait des compromis
+> de simplicité.
 
 | ✅ Protégé                                                     | ❌ Non protégé (assumé en démo)                                                         |
 | -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
