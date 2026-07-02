@@ -115,7 +115,7 @@ Tout vit à la racine du dépôt, par sous-dossiers thématiques :
 - `frontend/` : UI statique (HTML + JS vanilla, SDK Zama pré-bundlé)
 - `backend/` : serveurs Python stdlib
 - `scripts/` : outillage Hardhat + helpers bash
-- `test/`, `tasks/`, `docs/` : tests TS, tâches Hardhat, doc complémentaire
+- `test/`, `tasks/` : tests TS, tâches Hardhat
 - `start.sh` : orchestration globale
 
 ## 6. Ce que nous aurions fait différemment avec plus de temps

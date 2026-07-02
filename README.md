@@ -209,8 +209,6 @@ Tests inclus :
 │   ├── MultiDevice.ts
 │   └── verify_confidentiality.ts
 ├── tasks/accounts.ts             # `npx hardhat accounts` — liste les signers
-├── docs/
-│   └── CLOUDFLARE_TUNNEL.md      # doc d'exposition Internet via tunnel
 ├── hardhat.config.ts
 ├── package.json + package-lock.json
 ├── start.sh                      # lance tout d'un coup
@@ -220,8 +218,6 @@ Tests inclus :
 ## Documentation complémentaire
 
 - [`PROJECT.md`](PROJECT.md) — démarche, choix techniques, difficultés, organisation, axes d'amélioration.
-- [`docs/CLOUDFLARE_TUNNEL.md`](docs/CLOUDFLARE_TUNNEL.md) — exposition Internet via tunnel Cloudflare (depuis ta
-  machine).
 - [FHEVM Documentation](https://docs.zama.ai/fhevm) — la doc officielle Zama sur le chiffrement homomorphe appliqué à
   l'EVM.
 
