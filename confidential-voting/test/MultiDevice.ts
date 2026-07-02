@@ -140,13 +140,15 @@ describe("ConfidentialVoting - multi-appareils", function () {
     expect(tallyC).to.eq(3);
   });
 
-  it("génère 20 wallets aléatoires (sanity check de generateIdentities.js)", async function () {
-    // Génère 20 wallets comme le ferait generateIdentities.js
-    const identities = Array.from({ length: 20 }, () => ethers.Wallet.createRandom());
-    expect(identities.length).to.eq(20);
+  it("génère N wallets aléatoires valides (sanity check ethers.Wallet)", async function () {
+    // Reproduit le pattern de generateIdentities.js (N wallets au hasard) avec un
+    // petit N pour la vitesse du test. Le vrai défaut est 151 (= 1 admin + 150 votants).
+    const N = 20;
+    const identities = Array.from({ length: N }, () => ethers.Wallet.createRandom());
+    expect(identities.length).to.eq(N);
     // Toutes les adresses sont uniques
     const addrs = new Set(identities.map((w) => w.address));
-    expect(addrs.size).to.eq(20);
+    expect(addrs.size).to.eq(N);
     // Toutes les PK ont le bon format
     for (const w of identities) {
       expect(w.privateKey).to.match(/^0x[0-9a-fA-F]{64}$/);

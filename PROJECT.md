@@ -236,7 +236,7 @@ Trois propriétés sortent du lot :
    calculé sur la chaîne, et toute personne peut rejouer le calcul des
    ciphertexts pour vérifier le total.
 3. **Démo one-click** : `./start.sh` + un navigateur + des slips papier =
-   une vraie élection de 20 votants en moins de 5 minutes.
+   une vraie élection de 150 votants en moins de 5 minutes.
 
 C'est la combinaison de ces trois propriétés qui fait du FHE appliqué au
 vote un sujet de recherche actif, et qui justifie l'effort de

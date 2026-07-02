@@ -45,12 +45,13 @@ npm install
 Le script :
 
 1. démarre un noeud Hardhat local (`localhost:8545`),
-2. génère 20 wallets aléatoires et imprime les slips papier
-   (`scripts/printIdentities.html`),
+2. génère 151 wallets aléatoires (1 admin + 150 votants) et imprime
+   les slips papier (`scripts/printIdentities.html`),
 3. déploie le contrat `ConfidentialVoting` avec l'admin = slip #0,
 4. lance le relayer proxy (`localhost:8081`) et le serveur frontend
    (`localhost:8080`),
-5. ouvre éventuellement un tunnel Cloudflare pour l'accès distant.
+5. ouvre un tunnel Cloudflare pour l'accès distant — **uniquement si
+   `cloudflared` est installé** (sinon, seule l'IP LAN est exposée).
 
 À la fin, l'URL publique est affichée :
 
@@ -65,7 +66,7 @@ Le script :
 ### Côté organisateur (1 fois)
 
 1. Ouvre `confidential-voting/scripts/printIdentities.html` dans un
-   navigateur → clique **Imprimer** → coupe les 20 slips.
+   navigateur → clique **Imprimer** → coupe les 151 slips.
 2. **Supprime** le fichier après impression :
    ```bash
    rm confidential-voting/scripts/printIdentities.html
@@ -78,7 +79,8 @@ Le script :
 1. Sur le téléphone / laptop / tablette : ouvre l'URL publique.
 2. Une modale demande de coller la **clé privée** du slip → **Valider**.
    La PK reste dans le `localStorage` de l'appareil, jamais transmise.
-3. Vote. Bouton **🧹 Effacer mes données** en fin de session.
+3. Vote. Bouton **🚪 Se déconnecter** en fin de session pour effacer
+   la PK du `localStorage`.
 
 ### Côté admin (slip #0 uniquement)
 

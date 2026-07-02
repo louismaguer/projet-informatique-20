@@ -1,4 +1,4 @@
-# 🚀 Déploiement FHEVM Vote sur VPS Oracle Cloud
+# 🚀 Déploiement FHEVM Vote sur VPS (Ubuntu)
 
 ## Pour les testeurs
 
