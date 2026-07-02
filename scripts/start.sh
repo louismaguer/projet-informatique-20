@@ -94,7 +94,9 @@ if command -v cloudflared > /dev/null 2>&1; then
     fi
 else
     echo "ℹ cloudflared non installé — pas de tunnel Internet (LAN uniquement)"
-    echo "  Pour activer le tunnel : brew install cloudflared"
+    echo "  Pour activer le tunnel : brew install cloudflared          # macOS"
+    echo "                              sudo apt install cloudflared  # Debian/Ubuntu"
+    echo "                              voir https://pkg.cloudflare.com/  # autres"
 fi
 
 # 7. Régénère les slips avec l'URL publique (sans changer les clés !)
@@ -116,7 +118,11 @@ echo "=========================================="
 echo "🎉 Services prêts!"
 echo ""
 echo "📍 Frontend (local):  http://localhost:8080"
-LAN_IP=$(ifconfig 2>/dev/null | grep -oE 'inet [0-9.]+' | grep -v '127.0.0.1' | head -1 | awk '{print $2}')
+if command -v ip > /dev/null 2>&1; then
+    LAN_IP=$(ip -4 addr show 2>/dev/null | awk '/inet / && !/127.0.0.1/ {print $2}' | cut -d/ -f1 | head -1)
+else
+    LAN_IP=$(ifconfig 2>/dev/null | grep -oE 'inet [0-9.]+' | grep -v '127.0.0.1' | head -1 | awk '{print $2}')
+fi
 if [ -n "$LAN_IP" ]; then
     echo "📍 Frontend (LAN):    http://$LAN_IP:8080"
 fi
@@ -139,7 +145,11 @@ echo "=========================================="
 
 # Open browser (macOS)
 sleep 1
-open http://localhost:8080 2>/dev/null || true
+if command -v open > /dev/null 2>&1; then
+    open http://localhost:8080
+elif command -v xdg-open > /dev/null 2>&1; then
+    xdg-open http://localhost:8080
+fi
 
 # Wait for interrupt
 wait
