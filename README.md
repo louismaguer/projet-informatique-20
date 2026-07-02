@@ -112,13 +112,13 @@ par l'admin.
 
 **Surface d'exposition** (par défaut avec `./start.sh`) :
 
-- Tourne sur **ta machine** (localhost :8080 / :8081 / :8545)
-- Accessible depuis ton LAN à `http://<IP-locale>:8080`
+- Tourne sur **la machine locale** (localhost :8080 / :8081 / :8545)
+- Accessible depuis le LAN à `http://<IP-locale>:8080`
 - **Exposé à internet** via un tunnel Cloudflare `*.trycloudflare.com` (URL affichée par `./start.sh`) — **uniquement si
-  `cloudflared` est installé** sur ta machine. Sinon, seul le LAN est accessible.
+  `cloudflared` est installé** sur la machine. Sinon, seul le LAN est accessible.
 
 Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi) de voter. Sans lui, les votants doivent
-être sur le même LAN que ta machine.
+être sur le même LAN que la machine.
 
 > ## ⚠️ AVERTISSEMENT CRITIQUE — wallets de démo
 >
@@ -126,7 +126,7 @@ Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi)
 > sont de **vrais keypairs cryptographiques** (mêmes algo que MetaMask/Ledger). Ils n'ont de la valeur **que** sur le
 > noeud Hardhat local (chainId 31337).
 >
-> **Ne finance JAMAIS ces adresses sur mainnet, Sepolia ou toute autre chaîne publique.** Si quelqu'un (toi, un dev, une
+> **Ne finance JAMAIS ces adresses sur mainnet, Sepolia ou toute autre chaîne publique.** Si quelqu'un (un dev, une
 > erreur de copier-coller) envoie de l'ETH réel à une de ces adresses, la clé privée imprimée sur le slip contrôle ces
 > fonds — et quiconque a vu le slip aussi.
 >
@@ -150,13 +150,13 @@ Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi)
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
 | Choix de chaque votant (chiffrement FHE local avant envoi)         | Authentification du votant (n'importe qui avec un slip peut voter)                                                |
 | Vote individuel invisible jusqu'à la clôture                       | Risque de regard par-dessus l'épaule quand la PK est collée                                                       |
-| Ta clé ne quitte jamais ton appareil                               | `localStorage` non chiffré au repos sur ton appareil                                                              |
+| La clé privée ne quitte jamais l'appareil                          | `localStorage` non chiffré au repos sur l'appareil                                                                |
 | Réseau : HTTPS via tunnel Cloudflare, mais ciphertext FHE = opaque | En local (LAN) le transport est HTTP en clair ; sans tunnel, un sniffer sur le LAN peut observer les requêtes RPC |
-| URL tunnel sans auth → quiconque la devine peut voter              | Attaque physique sur l'appareil entre le moment où tu colles la PK et celui où tu votes                           |
+| URL tunnel sans auth → quiconque la devine peut voter              | Attaque physique sur l'appareil entre le moment où la PK est collée et celui où le vote est émis                  |
 
-> **Important** : si `cloudflared` est installé sur ta machine, `./start.sh` expose automatiquement le service à
-> internet via un tunnel Cloudflare. Toute personne qui obtient l'URL `trycloudflare.com` peut alors atteindre ton noeud
-> Hardhat. Pour une démo 100% locale, tue le tunnel (`pkill -f cloudflared`) et utilise uniquement l'IP LAN.
+> **Important** : si `cloudflared` est installé sur la machine, `./start.sh` expose automatiquement le service à
+> internet via un tunnel Cloudflare. Toute personne qui obtient l'URL `trycloudflare.com` peut alors atteindre le noeud
+> Hardhat local. Pour une démo 100% locale, tuer le tunnel (`pkill -f cloudflared`) et utiliser uniquement l'IP LAN.
 
 ## Tester le contrat
 
