@@ -8,12 +8,12 @@ chiffrement homomorphe (FHE) de Zama. Le total est calculé on-chain sur les cip
 la clôture, par l'admin.
 
 ```
-┌────────────────┐  PK du slip papier  ┌──────────────────┐
-│  Votant (web)  │ ──────────────────► │  Relayer mock    │
-│  chiffrement   │   (chiffré FHE)     │  + noeud Hardhat │
-│  local         │                     │  + contrat       │
-└────────────────┘                     │  ConfidentialVoting │
-                                       └──────────────────┘
+┌────────────────────┐                    ┌────────────────────┐
+│   Votant (web)     │   PK du slip       │   Relayer mock     │
+│   chiffrement      │   papier           │   + noeud Hardhat  │
+│   local            │ ─────────────────► │   + contrat        │
+│                    │  (chiffré FHE)     │ ConfidentialVoting │
+└────────────────────┘                    └────────────────────┘
 ```
 
 ## Livrables
