@@ -59,10 +59,7 @@ describe("ConfidentialVoting", function () {
   });
 
   async function encryptVote(electionId: number, option: number, voter: HardhatEthersSigner) {
-    return await fhevm
-      .createEncryptedInput(contractAddress, voter.address)
-      .add32(option)
-      .encrypt();
+    return await fhevm.createEncryptedInput(contractAddress, voter.address).add32(option).encrypt();
   }
 
   it("devrait creer une election avec succes", async function () {
@@ -85,9 +82,7 @@ describe("ConfidentialVoting", function () {
 
   it("devrait refuser une election sans titre", async function () {
     const options = ["Alice", "Bob"];
-    await expect(contract.createElection("", options)).to.be.revertedWith(
-      "CreateElection: title cannot be empty",
-    );
+    await expect(contract.createElection("", options)).to.be.revertedWith("CreateElection: title cannot be empty");
   });
 
   it("devrait refuser une election avec 0 options", async function () {
@@ -160,9 +155,7 @@ describe("ConfidentialVoting", function () {
     await (await contract.createElection("Poll", options)).wait();
 
     const encryptedVote = await encryptVote(1, 0, signers.voter1);
-    const tx = await contract
-      .connect(signers.voter1)
-      .castVote(1, encryptedVote.handles[0], encryptedVote.inputProof);
+    const tx = await contract.connect(signers.voter1).castVote(1, encryptedVote.handles[0], encryptedVote.inputProof);
     await tx.wait();
 
     const hasVoted = await contract.hasVoted(1, signers.voter1.address);
@@ -175,9 +168,7 @@ describe("ConfidentialVoting", function () {
 
     const encryptedVote1 = await encryptVote(1, 0, signers.voter1);
     await (
-      await contract
-        .connect(signers.voter1)
-        .castVote(1, encryptedVote1.handles[0], encryptedVote1.inputProof)
+      await contract.connect(signers.voter1).castVote(1, encryptedVote1.handles[0], encryptedVote1.inputProof)
     ).wait();
 
     const encryptedVote2 = await encryptVote(1, 1, signers.voter1);
@@ -240,22 +231,13 @@ describe("ConfidentialVoting", function () {
     await (await contract.closeElection(1)).wait();
 
     // Lecture et déchiffrement des résultats
-    const tallyAlice = await fhevm.publicDecryptEuint(
-      FhevmType.euint32,
-      await contract.getEncryptedTally(1, 0),
-    );
+    const tallyAlice = await fhevm.publicDecryptEuint(FhevmType.euint32, await contract.getEncryptedTally(1, 0));
     expect(tallyAlice).to.eq(5);
 
-    const tallyBob = await fhevm.publicDecryptEuint(
-      FhevmType.euint32,
-      await contract.getEncryptedTally(1, 1),
-    );
+    const tallyBob = await fhevm.publicDecryptEuint(FhevmType.euint32, await contract.getEncryptedTally(1, 1));
     expect(tallyBob).to.eq(3);
 
-    const tallyCharlie = await fhevm.publicDecryptEuint(
-      FhevmType.euint32,
-      await contract.getEncryptedTally(1, 2),
-    );
+    const tallyCharlie = await fhevm.publicDecryptEuint(FhevmType.euint32, await contract.getEncryptedTally(1, 2));
     expect(tallyCharlie).to.eq(2);
   });
 

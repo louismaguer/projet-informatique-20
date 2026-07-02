@@ -21,10 +21,7 @@ async function deployFixture() {
 }
 
 async function encryptVote(contractAddress: string, option: number, voter: HardhatEthersSigner) {
-  return await fhevm
-    .createEncryptedInput(contractAddress, voter.address)
-    .add32(option)
-    .encrypt();
+  return await fhevm.createEncryptedInput(contractAddress, voter.address).add32(option).encrypt();
 }
 
 async function castVotes(
@@ -36,18 +33,22 @@ async function castVotes(
   for (const v of votes) {
     const voter = signers.voters[v.voterIdx - 1];
     const enc = await encryptVote(contractAddress, v.option, voter);
-    await (
-      await contract.connect(voter).castVote(1, enc.handles[0], enc.inputProof)
-    ).wait();
+    await (await contract.connect(voter).castVote(1, enc.handles[0], enc.inputProof)).wait();
   }
 }
 
 // 5 votes Alice, 3 votes Bob, 2 votes Charlie
 const DISTRIBUTION: Array<{ option: number; voterIdx: number }> = [
-  { option: 0, voterIdx: 1 }, { option: 0, voterIdx: 2 }, { option: 0, voterIdx: 3 },
-  { option: 0, voterIdx: 4 }, { option: 0, voterIdx: 5 },
-  { option: 1, voterIdx: 6 }, { option: 1, voterIdx: 7 }, { option: 1, voterIdx: 8 },
-  { option: 2, voterIdx: 9 }, { option: 2, voterIdx: 10 },
+  { option: 0, voterIdx: 1 },
+  { option: 0, voterIdx: 2 },
+  { option: 0, voterIdx: 3 },
+  { option: 0, voterIdx: 4 },
+  { option: 0, voterIdx: 5 },
+  { option: 1, voterIdx: 6 },
+  { option: 1, voterIdx: 7 },
+  { option: 1, voterIdx: 8 },
+  { option: 2, voterIdx: 9 },
+  { option: 2, voterIdx: 10 },
 ];
 
 describe("ConfidentialVoting — Confidentiality Audit", function () {
@@ -77,8 +78,8 @@ describe("ConfidentialVoting — Confidentiality Audit", function () {
     // Le contrat n'expose AUCUNE fonction `getVote(eid, voter)` ou
     // `votes[eid][voter]` qui renverrait le choix d'un votant.
     const abi = contract.interface;
-    expect(abi.getFunction("getVote(uint256,address)")).to.be.null;
-    expect(abi.getFunction("votes(uint256,address)")).to.be.null;
+    expect(abi.hasFunction("getVote(uint256,address)")).to.be.false;
+    expect(abi.hasFunction("votes(uint256,address)")).to.be.false;
 
     // hasVoted ne stocke qu'un booleen (0 ou 1), JAMAIS l'indice d'option (0/1/2).
     for (const v of DISTRIBUTION) {
@@ -216,16 +217,17 @@ describe("ConfidentialVoting — Confidentiality Audit", function () {
     let dataContainsOptionIndex = 0;
 
     for (const event of events) {
-      const raw = event as ethers.EventLog;
+      // TypedEventLog (issu de queryFilter sur un EventFragment connu) expose
+      // directement `.data` et `.topics`, donc pas besoin de caster en EventLog.
 
       // data est vide (les 2 args sont `indexed`)
-      if (raw.data && raw.data !== "0x" && raw.data !== "0x0") dataFieldNonEmpty++;
+      if (event.data && event.data !== "0x" && event.data !== "0x0") dataFieldNonEmpty++;
 
       // Verifier qu'aucune option (0, 1 ou 2) ne fuite dans data
-      if (raw.data && /0{60}[1-3]/.test(raw.data)) dataContainsOptionIndex++;
+      if (event.data && /0{60}[1-3]/.test(event.data)) dataContainsOptionIndex++;
 
       // Les topics contiennent electionId et voter (attendu), pas le vote
-      expect(raw.topics.length).to.eq(3); // sig + 2 indexed
+      expect(event.topics.length).to.eq(3); // sig + 2 indexed
     }
 
     expect(dataFieldNonEmpty).to.eq(0);

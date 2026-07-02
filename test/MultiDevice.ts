@@ -1,3 +1,4 @@
+import type { FunctionFragment, HDNodeWallet, Provider, Signer } from "ethers";
 import { ethers, fhevm } from "hardhat";
 import { ConfidentialVoting, ConfidentialVoting__factory } from "../types";
 import { FhevmType } from "@fhevm/hardhat-plugin";
@@ -19,15 +20,15 @@ import * as path from "path";
 describe("ConfidentialVoting - multi-appareils", function () {
   let contract: ConfidentialVoting;
   let contractAddress: string;
-  let provider: ethers.JsonRpcProvider;
-  let admin: ethers.Signer;
+  let provider: Provider;
+  let admin: Signer;
 
   // Wallets arbitraires (comme ceux que génère scripts/generateIdentities.js)
   // Connectés à un provider pour pouvoir envoyer des tx
   const wallet0Seed = ethers.Wallet.createRandom();
   const wallet1Seed = ethers.Wallet.createRandom();
-  let wallet0: ethers.HDNodeWallet;
-  let wallet1: ethers.HDNodeWallet;
+  let wallet0: HDNodeWallet;
+  let wallet1: HDNodeWallet;
 
   beforeEach(async function () {
     if (!fhevm.isMock) {
@@ -163,7 +164,7 @@ describe("ConfidentialVoting - multi-appareils", function () {
   it("admin est immutable (pas de setter dans l'ABI)", async function () {
     // L'interface du contrat ne doit exposer aucune fonction de transfert admin
     const fragmentNames = contract.interface.fragments
-      .filter((f) => f.type === "function")
+      .filter((f): f is FunctionFragment => f.type === "function")
       .map((f) => f.name);
     expect(fragmentNames).to.not.include("transferAdmin");
     expect(fragmentNames).to.not.include("setAdmin");
