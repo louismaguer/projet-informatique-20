@@ -50,18 +50,18 @@ sans avoir à signer manuellement chaque appel.
 - démo reproductible sans environnement virtuel Python, démarrage _one-click_.
 
 Le navigateur applique une règle de sécurité appelée CORS : par défaut, il refuse qu'une page web appelle un serveur
-différent de celui qui l'a servie. En faisant passer **toutes** les requêtes par ce même port (8080), on contourne cette
-restriction : le navigateur croit que tout vient du même endroit, alors qu'en coulisses le serveur redirige vers la
-blockchain ou le relayer.
+différent de celui qui l'a servie. En faisant passer **toutes** les requêtes par ce même port (8080), la restriction se
+trouve contournée : le navigateur croit que tout vient du même endroit, alors qu'en coulisses le serveur redirige vers
+la blockchain ou le relayer.
 
 ### 3.2 Pourquoi des slips papier pour les wallets ?
 
 Le sujet demande _"comment vérifier qu'un wallet donné n'a pas déjà voté"_. Une authentification classique (le votant
-signe avec sa clé pour se connecter) ne convient pas : on veut que le vote reste **anonyme** (un wallet n'est pas lié à
-une personne), le bulletin chiffré garantit déjà la confidentialité du choix, et la slip papier fait office de **passe
+signe avec sa clé pour se connecter) ne convient pas : le vote doit rester **anonyme** (un wallet n'est pas lié à une
+personne), le bulletin chiffré garantit déjà la confidentialité du choix, et la slip papier fait office de **passe
 d'accès** (qui la détient peut voter) tout en gardant une clé publique **jamais transmise** au serveur.
 
-C'est un compromis _sécurité cryptographique_ ↔ _ergonomie de démo_. En production, on utiliserait une vraie
+C'est un compromis _sécurité cryptographique_ ↔ _ergonomie de démo_. En production, il faudrait utiliser une vraie
 authentification (OAuth, JWT — standards du web) couplée à une attestation **à divulgation nulle de connaissance** (ZK :
 le votant prouve son identité sans rien révéler dessus) — mais c'est hors scope ici.
 
@@ -79,9 +79,8 @@ Simple, permissive, compatible avec Zama (BSD-3-Clause-Clear) et avec toute réu
 
 ### 4.1 Certains navigateurs coupent les slips entre deux pages
 
-Sur les navigateurs WebKit, `page-break-inside: avoid` ne suffit pas quand un
-slip dépasse la moitié d'une page A4. Fix : `@media print { html, body { height: auto; } }` + recalibrage des hauteurs
-de cartes.
+Sur les navigateurs WebKit, `page-break-inside: avoid` ne suffit pas quand un slip dépasse la moitié d'une page A4. Fix
+: `@media print { html, body { height: auto; } }` + recalibrage des hauteurs de cartes.
 
 ### 4.2 Erreur Cloudflare 1033 (tunnel en double)
 
@@ -98,14 +97,14 @@ HTML (`renderSlips.js`, lit `.identities.json`).
 
 Le backend doit afficher les détails d'une élection (nom, options) reçus du contrat. Ces données arrivent au format
 binaire ABI d'Ethereum (le format standard pour échanger des données avec un smart contract). Pour éviter d'ajouter
-`web3.py` (lib externe lourde) comme dépendance, on a écrit un petit décodeur à la main pour `getElection()` (tableaux
+`web3.py` (lib externe lourde) comme dépendance, un petit décodeur à la main a été écrit pour `getElection()` (tableaux
 de chaînes), dans `server.py:103-154` — verbeux mais 100 % transparent, chaque octet est lu explicitement.
 
 ### 4.5 Le mode "exposition par défaut"
 
-`./start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). On a choisi de garder le tunnel activé par
-défaut et d'afficher un avertissement bien visible dans le README et à l'écran — sans ça, on ne pourrait pas
-ouvrir la démo sur un autre appareil.
+`./start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). Le tunnel est laissé activé par défaut et un
+avertissement bien visible est affiché dans le README et à l'écran — sans cela, impossible d'ouvrir la démo sur un autre
+appareil.
 
 ## 5. Organisation
 
@@ -140,8 +139,8 @@ Tout vit à la racine du dépôt, par sous-dossiers thématiques :
 
 Trois propriétés :
 
-1. **Confidentialité cryptographique vraie** : sur la blockchain, on ne voit que des données chiffrées — impossible de
-   savoir qui a voté quoi, ni même _combien_ de votes ont été exprimés (jusqu'à la clôture).
+1. **Confidentialité cryptographique vraie** : sur la blockchain, il n'y a rien d'autre à voir que des données chiffrées
+   — impossible de savoir qui a voté quoi, ni même _combien_ de votes ont été exprimés (jusqu'à la clôture).
 2. **Vérifiabilité publique** : le contrat est ouvert, le résultat est calculé sur la chaîne, et n'importe qui peut
    rejouer le calcul pour vérifier le total.
 3. **Démo _one-click_** : `./start.sh` + navigateur + slips papier = une vraie élection de 150 votants en moins de 5
