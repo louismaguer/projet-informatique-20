@@ -2,6 +2,50 @@
 # Lance tous les services pour la démo FHEVM locale
 set -e
 
+# Empêche MSYS (Git Bash) de traduire les chemins Unix en chemins Windows
+# pour les commandes externes (python, npx, node, etc.). No-op sur macOS/Linux.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
+# Détection cross-platform des PIDs écoutant sur un port (lsof → netstat → ss).
+# Retourne un ou plusieurs PIDs (un par ligne), ou rien si le port est libre.
+_port_listeners() {
+    local port="$1"
+    if command -v lsof > /dev/null 2>&1; then
+        lsof -ti :"$port" 2>/dev/null
+    elif command -v netstat > /dev/null 2>&1; then
+        # netstat -ano (Windows) ou -lntp (Unix). On normalise via awk.
+        netstat -ano 2>/dev/null | awk -v port=":$port" \
+            '$0 ~ port && /LISTENING/ {print $NF}' | sort -u
+    elif command -v ss > /dev/null 2>&1; then
+        ss -lntp 2>/dev/null | awk -v port=":$port" \
+            '$4 ~ port {print $0}' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u
+    fi
+}
+
+# Test "le port $1 est-il occupé ?"
+_port_in_use() {
+    [ -n "$(_port_listeners "$1")" ]
+}
+
+# Tue un PID de façon portable (kill POSIX sur Unix, taskkill sur Windows).
+_kill_pid() {
+    local pid="$1"
+    if [ -n "$pid" ]; then
+        case "$(uname -s 2>/dev/null || echo unknown)" in
+            CYGWIN*|MINGW*|MSYS*)
+                taskkill //F //PID "$pid" 2>/dev/null || true
+                ;;
+            *)
+                kill "$pid" 2>/dev/null || true
+                ;;
+        esac
+    fi
+}
+
+# Python : python3 sur macOS/Linux, souvent "python" seul sur Windows (Git Bash).
+PY=$(command -v python3 2>/dev/null || command -v python 2>/dev/null || echo python3)
+
 # Fichier temporaire avec l'adresse admin (généré par generateIdentities.js)
 ADMIN_FILE="scripts/.admin_addr"
 ADMIN_PK_FILE="scripts/.admin_pk"
@@ -11,10 +55,10 @@ IDENTITIES_FILE="scripts/.identities.json"
 cleanup() {
     echo ""
     echo "🛑 Arrêt des services..."
-    kill $(lsof -ti :8545) 2>/dev/null || true
-    kill $(lsof -ti :8080) 2>/dev/null || true
-    kill $(lsof -ti :8081) 2>/dev/null || true
-    [ -n "${TUNNEL_PID:-}" ] && kill "$TUNNEL_PID" 2>/dev/null || true
+    for pid in $(_port_listeners 8545); do _kill_pid "$pid"; done
+    for pid in $(_port_listeners 8080); do _kill_pid "$pid"; done
+    for pid in $(_port_listeners 8081); do _kill_pid "$pid"; done
+    [ -n "${TUNNEL_PID:-}" ] && _kill_pid "$TUNNEL_PID"
     rm -f "$ADMIN_FILE" "$ADMIN_PK_FILE" "$IDENTITIES_FILE"
 }
 trap cleanup EXIT
@@ -23,7 +67,7 @@ echo "🔐 Vote Confidentiel FHEVM - Démarrage"
 echo "=========================================="
 
 # 1. Hardhat node
-if ! lsof -i :8545 > /dev/null 2>&1; then
+if ! _port_in_use 8545; then
     echo "📡 Démarrage Hardhat node..."
     npx hardhat node --network hardhat --hostname 0.0.0.0 > /tmp/hardhat.log 2>&1 &
     HARDHAT_PID=$!
@@ -61,18 +105,18 @@ CONTRACT_ADDRESS=$(echo "$DEPLOY_OUT" | grep "ConfidentialVoting contract:" | gr
 echo "✓ Contrat déployé: $CONTRACT_ADDRESS"
 
 # 4. Relayer proxy
-if ! lsof -i :8081 > /dev/null 2>&1; then
+if ! _port_in_use 8081; then
     echo "🔌 Démarrage relayer proxy..."
-    python3 backend/relayer_proxy.py > /tmp/proxy.log 2>&1 &
+    "$PY" backend/relayer_proxy.py > /tmp/proxy.log 2>&1 &
     PROXY_PID=$!
     sleep 2
 fi
 echo "✓ Relayer proxy prêt (port 8081)"
 
 # 5. Frontend server (no-cache pour éviter le caching navigateur)
-if ! lsof -i :8080 > /dev/null 2>&1; then
+if ! _port_in_use 8080; then
     echo "🌐 Démarrage frontend server (no-cache, avec reverse proxy intégré)..."
-    python3 backend/frontend_server.py > /tmp/frontend.log 2>&1 &
+    "$PY" backend/frontend_server.py > /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
     sleep 2
 fi
@@ -143,12 +187,16 @@ echo "👉 Ouvrez http://localhost:8080 dans votre navigateur"
 echo "👉 Imprimez les slips depuis scripts/printIdentities.html puis supprimez le fichier"
 echo "=========================================="
 
-# Open browser (macOS)
+# Open browser (macOS / Linux / Git Bash sur Windows)
 sleep 1
 if command -v open > /dev/null 2>&1; then
     open http://localhost:8080
 elif command -v xdg-open > /dev/null 2>&1; then
     xdg-open http://localhost:8080
+elif command -v cmd > /dev/null 2>&1; then
+    # Git Bash : cmd //c start (le // empêche MSYS de traduire le flag /c).
+    # Le "" initial est le titre de fenêtre obligatoire pour `start`.
+    cmd //c 'start "" "http://localhost:8080"' 2>/dev/null || true
 fi
 
 # Wait for interrupt
