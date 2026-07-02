@@ -126,7 +126,7 @@ Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi)
 > sont de **vrais keypairs cryptographiques** (mêmes algo que MetaMask/Ledger). Ils n'ont de la valeur **que** sur le
 > noeud Hardhat local (chainId 31337).
 >
-> **Ne finance JAMAIS ces adresses sur mainnet, Sepolia ou toute autre chaîne publique.** Si quelqu'un (un dev, une
+> **Ne JAMAIS financer ces adresses sur mainnet, Sepolia ou toute autre chaîne publique.** Si quelqu'un (un dev, une
 > erreur de copier-coller) envoie de l'ETH réel à une de ces adresses, la clé privée imprimée sur le slip contrôle ces
 > fonds — et quiconque a vu le slip aussi.
 >
