@@ -79,7 +79,7 @@ Simple, permissive, compatible avec Zama (BSD-3-Clause-Clear) et avec toute réu
 
 ### 4.1 Certains navigateurs coupent les slips entre deux pages
 
-Sur Safari (et plus marginalement sur d'autres navigateurs WebKit), `page-break-inside: avoid` ne suffit pas quand un
+Sur les navigateurs WebKit, `page-break-inside: avoid` ne suffit pas quand un
 slip dépasse la moitié d'une page A4. Fix : `@media print { html, body { height: auto; } }` + recalibrage des hauteurs
 de cartes.
 
@@ -104,8 +104,8 @@ de chaînes), dans `server.py:103-154` — verbeux mais 100 % transparent, chaqu
 ### 4.5 Le mode "exposition par défaut"
 
 `./start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). On a choisi de garder le tunnel activé par
-défaut et d'afficher un avertissement bien visible dans le README et à l'écran — sans ça, le superviseur ne pourrait pas
-ouvrir la démo sur son téléphone.
+défaut et d'afficher un avertissement bien visible dans le README et à l'écran — sans ça, on ne pourrait pas
+ouvrir la démo sur un autre appareil.
 
 ## 5. Organisation
 
