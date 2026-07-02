@@ -103,8 +103,7 @@ README/écran : une démo non récupérable sur le téléphone de l'encadrant es
 
 ## 5. Organisation
 
-Branche unique `main`, pas de PR (projet solo). Tout vit à la racine du dépôt (aplatissement post-cleanup), par
-sous-dossiers thématiques :
+Tout vit à la racine du dépôt, par sous-dossiers thématiques :
 
 - `contracts/` : Solidity (`ConfidentialVoting.sol`)
 - `deploy/` : déploiement Hardhat (`deploy.ts`)
