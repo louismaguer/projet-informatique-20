@@ -31,7 +31,7 @@ RELAYER_URL = os.environ.get("RELAYER_URL", "http://localhost:8081")
 
 def get_contract_info():
     """Lit l'adresse du contrat depuis deployments/localhost/ConfidentialVoting.json
-    et l'adresse admin depuis scripts/.admin_addr (généré par start.sh)."""
+    et l'adresse admin depuis scripts/.admin_addr (généré par scripts/start.sh)."""
     info = {"address": None, "admin": None, "error": None}
     try:
         with open(os.path.join(DEPLOY_DIR, "ConfidentialVoting.json")) as f:

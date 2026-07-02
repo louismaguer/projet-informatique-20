@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 IDENTITIES_FILE="scripts/.identities.json"
 
 if [ ! -f "$IDENTITIES_FILE" ]; then
-    echo "❌ $IDENTITIES_FILE introuvable. Lance d'abord start.sh pour générer les identités."
+    echo "❌ $IDENTITIES_FILE introuvable. Lance d'abord scripts/start.sh pour générer les identités."
     exit 1
 fi
 

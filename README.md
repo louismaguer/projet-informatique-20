@@ -40,13 +40,13 @@ crypto compréhensible (opérations FHE documentées en clair dans le contrat et
 
 ## Pré-requis
 
-| Outil         | Version       | Vérif                     |
-| ------------- | ------------- | ------------------------- |
-| Node.js       | ≥ 20          | `node -v`                 |
-| npm           | ≥ 7           | `npm -v`                  |
-| Python        | ≥ 3.8         | `python3 --version`       |
-| `lsof`        | (macOS/Linux) | utilisé par `start.sh`    |
-| `cloudflared` | optionnel     | pour exposer sur internet |
+| Outil         | Version       | Vérif                          |
+| ------------- | ------------- | ------------------------------ |
+| Node.js       | ≥ 20          | `node -v`                      |
+| npm           | ≥ 7           | `npm -v`                       |
+| Python        | ≥ 3.8         | `python3 --version`            |
+| `lsof`        | (macOS/Linux) | utilisé par `scripts/start.sh` |
+| `cloudflared` | optionnel     | pour exposer sur internet      |
 
 ## Installation
 
@@ -62,7 +62,7 @@ npm install
 À la racine du dépôt :
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 Le script :
@@ -91,7 +91,7 @@ Le script :
    ```bash
    rm scripts/printIdentities.html
    ```
-3. Note l'URL affichée par `./start.sh` (le tunnel `trycloudflare.com` si activé, sinon l'IP locale).
+3. Note l'URL affichée par `./scripts/start.sh` (le tunnel `trycloudflare.com` si activé, sinon l'IP locale).
 
 ### Côté votant (un par appareil)
 
@@ -110,12 +110,12 @@ Après avoir collé sa PK, l'admin voit un panneau supplémentaire : **créer un
 Le frontend n'embarque **aucune clé privée**. Chaque votant utilise sa propre identité, reçue sur un slip papier imprimé
 par l'admin.
 
-**Surface d'exposition** (par défaut avec `./start.sh`) :
+**Surface d'exposition** (par défaut avec `./scripts/start.sh`) :
 
 - Tourne sur **la machine locale** (localhost :8080 / :8081 / :8545)
 - Accessible depuis le LAN à `http://<IP-locale>:8080`
-- **Exposé à internet** via un tunnel Cloudflare `*.trycloudflare.com` (URL affichée par `./start.sh`) — **uniquement si
-  `cloudflared` est installé** sur la machine. Sinon, seul le LAN est accessible.
+- **Exposé à internet** via un tunnel Cloudflare `*.trycloudflare.com` (URL affichée par `./scripts/start.sh`) —
+  **uniquement si `cloudflared` est installé** sur la machine. Sinon, seul le LAN est accessible.
 
 Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi) de voter. Sans lui, les votants doivent
 être sur le même LAN que la machine.
@@ -154,7 +154,7 @@ Le tunnel est ce qui permet à des votants distants (réseau mobile, autre WiFi)
 | Réseau : HTTPS via tunnel Cloudflare, mais ciphertext FHE = opaque | En local (LAN) le transport est HTTP en clair ; sans tunnel, un sniffer sur le LAN peut observer les requêtes RPC |
 | URL tunnel sans auth → quiconque la devine peut voter              | Attaque physique sur l'appareil entre le moment où la PK est collée et celui où le vote est émis                  |
 
-> **Important** : si `cloudflared` est installé sur la machine, `./start.sh` expose automatiquement le service à
+> **Important** : si `cloudflared` est installé sur la machine, `./scripts/start.sh` expose automatiquement le service à
 > internet via un tunnel Cloudflare. Toute personne qui obtient l'URL `trycloudflare.com` peut alors atteindre le noeud
 > Hardhat local. Pour une démo 100% locale, tuer le tunnel (`pkill -f cloudflared`) et utiliser uniquement l'IP LAN.
 
@@ -195,6 +195,7 @@ Tests inclus :
 │   ├── frontend_server.py        # serveur statique no-cache
 │   └── relayer_proxy.py          # proxy relayer HTTP → JSON-RPC
 ├── scripts/                      # outillage Hardhat
+│   ├── start.sh                  # orchestration globale (depuis racine : ./scripts/start.sh)
 │   ├── closeElection.js
 │   ├── createElection.js
 │   ├── demo.js
@@ -211,7 +212,6 @@ Tests inclus :
 ├── tasks/accounts.ts             # `npx hardhat accounts` — liste les signers
 ├── hardhat.config.ts
 ├── package.json + package-lock.json
-├── start.sh                      # lance tout d'un coup
 └── tsconfig.json / eslint.config.mjs
 ```
 

@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // L'admin doit être passé au constructeur.
   // Priorité :
-  //  1. Variable d'environnement ADMIN_ADDRESS (utilisée par start.sh)
+  //  1. Variable d'environnement ADMIN_ADDRESS (utilisée par scripts/start.sh)
   //  2. Sinon, fallback sur le déployeur (utile pour les tests Hardhat locaux)
   const adminAddress = process.env.ADMIN_ADDRESS || deployer;
   if (!process.env.ADMIN_ADDRESS) {

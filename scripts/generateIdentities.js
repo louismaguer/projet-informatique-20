@@ -61,7 +61,7 @@ async function main() {
     console.log(`✓ Noeud Hardhat joignable (block ${block})`);
   } catch {
     console.error("❌ Impossible de joindre Hardhat sur localhost:8545");
-    console.error("   Lance d'abord: bash start.sh");
+    console.error("   Lance d'abord: bash scripts/start.sh");
     process.exit(1);
   }
 
@@ -491,11 +491,11 @@ ${slipsHtml}
 `;
 
   fs.writeFileSync(OUT_FILE, html, "utf8");
-  // Écrit l'adresse admin dans un fichier temporaire pour start.sh
+  // Écrit l'adresse admin dans un fichier temporaire pour scripts/start.sh
   fs.writeFileSync(ADMIN_FILE, identities[0].address + "\n", "utf8");
   // Écrit la PK admin dans un fichier temporaire (utilisé par les scripts E2E)
   fs.writeFileSync(ADMIN_PK_FILE, identities[0].pk + "\n", "utf8");
-  // Persiste toutes les identités (PKs en clair, fichier temporaire supprimé par start.sh)
+  // Persiste toutes les identités (PKs en clair, fichier temporaire supprimé par scripts/start.sh)
   // Permet à renderSlips.js de régénérer le HTML avec une URL différente
   // SANS toucher aux clés (donc le contrat déployé reste valide)
   fs.writeFileSync(IDENTITIES_FILE, JSON.stringify(identities), "utf8");

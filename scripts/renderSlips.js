@@ -2,7 +2,7 @@
 // Régénère le HTML des slips (scripts/printIdentities.html) à partir des identités
 // déjà sauvegardées dans scripts/.identities.json, en y intégrant l'URL publique
 // (Cloudflare tunnel) fournie via PUBLIC_URL.
-// Utilisé par start.sh pour mettre à jour l'URL sur les slips SANS changer les clés
+// Utilisé par scripts/start.sh pour mettre à jour l'URL sur les slips SANS changer les clés
 // (sinon le contrat déployé avec l'ancienne admin ne correspondrait plus).
 
 const fs = require("fs");

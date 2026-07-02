@@ -8,10 +8,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 async function main() {
-  // 1. Lit la PK admin depuis le fichier généré par start.sh
+  // 1. Lit la PK admin depuis le fichier généré par scripts/start.sh
   const adminPkFile = path.join(__dirname, ".admin_pk");
   if (!fs.existsSync(adminPkFile)) {
-    console.error("❌ scripts/.admin_pk introuvable. Lance start.sh d'abord.");
+    console.error("❌ scripts/.admin_pk introuvable. Lance scripts/start.sh d'abord.");
     process.exit(1);
   }
   const ADMIN_PK = fs.readFileSync(adminPkFile, "utf-8").trim();

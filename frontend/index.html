@@ -411,12 +411,10 @@
       </div>
 
       <div id="adminBanner" class="admin-banner" style="display: none">
-        🔧 <strong>Vous êtes administrateur.</strong> Vous pouvez créer et fermer des
-        élections, mais pas voter (le contrat refuse le vote depuis cette adresse).
+        🔧 <strong>Vous êtes administrateur.</strong> Vous pouvez créer et fermer des élections, mais pas voter (le
+        contrat refuse le vote depuis cette adresse).
       </div>
-      <div id="voterBanner" class="voter-banner" style="display: none">
-        🗳 Vous êtes votant.
-      </div>
+      <div id="voterBanner" class="voter-banner" style="display: none">🗳 Vous êtes votant.</div>
 
       <div class="card">
         <h2>🔒 Voter (Chiffrement FHE réel)</h2>
@@ -513,9 +511,8 @@
       // RPC via le reverse proxy intégré au serveur frontend (un seul port exposé).
       // Pour un test direct (sans proxy), override par ?rpc=http://X.Y.Z.W:8545.
       const RPC_URL =
-        new URL(window.location.href).searchParams.get("rpc") ||
-        new URL("/api/rpc", window.location.origin).href;
-      // L'adresse du contrat est fournie dynamiquement par /api/contract (cf. start.sh
+        new URL(window.location.href).searchParams.get("rpc") || new URL("/api/rpc", window.location.origin).href;
+      // L'adresse du contrat est fournie dynamiquement par /api/contract (cf. scripts/start.sh
       // qui déploie le contrat après avoir lu ADMIN_ADDRESS). Cela évite de hardcoder
       // une adresse qui change si on supprime les artefacts.
       let CONTRACT_ADDRESS = null;

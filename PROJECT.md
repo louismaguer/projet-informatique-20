@@ -102,9 +102,9 @@ de chaînes), dans `server.py:103-154` — verbeux mais 100 % transparent, chaqu
 
 ### 4.5 Le mode "exposition par défaut"
 
-`./start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). Le tunnel est laissé activé par défaut et un
-avertissement bien visible est affiché dans le README et à l'écran — sans cela, impossible d'ouvrir la démo sur un autre
-appareil.
+`./scripts/start.sh` lance par défaut un tunnel Cloudflare (exposition Internet). Le tunnel est laissé activé par défaut
+et un avertissement bien visible est affiché dans le README et à l'écran — sans cela, impossible d'ouvrir la démo sur un
+autre appareil.
 
 ## 5. Organisation
 
@@ -116,7 +116,7 @@ Tout vit à la racine du dépôt, par sous-dossiers thématiques :
 - `backend/` : serveurs Python stdlib
 - `scripts/` : outillage Hardhat + helpers bash
 - `test/`, `tasks/` : tests TS, tâches Hardhat
-- `start.sh` : orchestration globale
+- `scripts/start.sh` : orchestration globale
 
 ## 6. Ce que nous aurions fait différemment avec plus de temps
 
@@ -143,7 +143,7 @@ Trois propriétés :
    — impossible de savoir qui a voté quoi, ni même _combien_ de votes ont été exprimés (jusqu'à la clôture).
 2. **Vérifiabilité publique** : le contrat est ouvert, le résultat est calculé sur la chaîne, et n'importe qui peut
    rejouer le calcul pour vérifier le total.
-3. **Démo _one-click_** : `./start.sh` + navigateur + slips papier = une vraie élection de 150 votants en moins de 5
-   minutes.
+3. **Démo _one-click_** : `./scripts/start.sh` + navigateur + slips papier = une vraie élection de 150 votants en moins
+   de 5 minutes.
 
 C'est cette combinaison qui fait du chiffrement homomorphe appliqué au vote un sujet de recherche actif.
