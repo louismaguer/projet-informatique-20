@@ -161,7 +161,7 @@ ta machine.
 | Wallet sans ETH                                                  | Message d'erreur explicite + bouton pour re-demander une PK                                                              |
 | Appareil perdu / volé                                            | Le votant peut cliquer « 🚪 Se déconnecter » → la PK disparaît du localStorage. L'admin peut créditer un nouveau slip. |
 
-## 🔒 Ce qui est prive, ce qui ne l'est pas
+## 🔒 Ce qui est privé, ce qui ne l'est pas
 
 > **Mini note** : cette section résume en deux colonnes ce que la crypto
 > FHE protège réellement, et les points où la démo fait des compromis
