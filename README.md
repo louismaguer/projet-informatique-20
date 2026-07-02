@@ -44,7 +44,7 @@ crypto compréhensible (opérations FHE documentées en clair dans le contrat et
 | ------------- | --------- | ----------------------- | ----------------------------------------------------- |
 | Node.js       | ≥ 20      | `node -v`               | toutes plateformes                                    |
 | npm           | ≥ 7       | `npm -v`                | livré avec Node.js                                    |
-| Bash          | ≥ 4       | `bash --version`        | macOS / Linux natif, **Git Bash** sur Windows         |
+| Bash          | ≥ 3.2     | `bash --version`        | macOS / Linux natif, **Git Bash 4.4+** sur Windows    |
 | Python        | ≥ 3.8     | `python3 --version`     | `python` (sans `3`) accepté sur Windows               |
 | `cloudflared` | optionnel | `cloudflared --version` | expose la démo sur internet via `*.trycloudflare.com` |
 
