@@ -18,20 +18,20 @@ la clôture, par l'admin.
 
 ## Livrables
 
-- ✅ **Contrat Solidity avec types chiffrés** : `contracts/ConfidentialVoting.sol` utilise `euint32`, `ebool`,
+- **Contrat Solidity avec types chiffrés** : `contracts/ConfidentialVoting.sol` utilise `euint32`, `ebool`,
   `externalEuint32` et les opérations `FHE.fromExternal` / `FHE.eq` / `FHE.select` / `FHE.add` /
   `FHE.makePubliclyDecryptable`.
-- ✅ **Frontend minimal qui chiffre le vote avec le SDK** : `frontend/index.html` charge le SDK Zama
+- **Frontend minimal qui chiffre le vote avec le SDK** : `frontend/index.html` charge le SDK Zama
   (`frontend/bundle/relayer-sdk-js.js`) et chiffre chaque bulletin avec `instance.createEncryptedInput(...)` avant
   d'envoyer la transaction.
-- ✅ **Déchiffrement final du résultat** : `closeElection()` rend les totaux déchiffrables publiquement
+- **Déchiffrement final du résultat** : `closeElection()` rend les totaux déchiffrables publiquement
   (`FHE.makePubliclyDecryptable`), puis le frontend appelle `instance.publicDecrypt([...])` pour afficher les résultats
   en clair.
-- ✅ **Tests unitaires + scénario e2e** :
+- **Tests unitaires + scénario e2e** :
   - unitaires : `test/ConfidentialVoting.ts`, `test/MultiDevice.ts`, `test/verify_confidentiality.ts` ;
   - e2e : `scripts/e2e_admin.ts` (parcours admin complet : créer une élection, voter, clôturer) + `scripts/demo.js`
     (scénario automatique).
-- ✅ **Mini note « ce qui est privé, ce qui ne l'est pas »** : voir la section
+- **Mini note « ce qui est privé, ce qui ne l'est pas »** : voir la section
   [🔒 Ce qui est privé, ce qui ne l'est pas](#-ce-qui-est-prive-ce-qui-ne-lest-pas) plus bas dans ce README.
 
 **Pourquoi c'est bien** : produit visible (le votant clique, un total chiffré apparaît, puis en clair après clôture),
